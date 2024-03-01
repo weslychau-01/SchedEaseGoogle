@@ -30,4 +30,7 @@ build/
 !**/src/test/**/build/
 
 ### VS Code ###
-.vscode/
+/.vscode/
+/schedease/src/main/resources/credentials.json
+/schedease/tokens/
+/schedease/target/classes/credentials.json
