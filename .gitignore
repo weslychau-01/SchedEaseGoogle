@@ -1,0 +1,43 @@
+### General Java/Maven ###
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+# Assuming these paths were meant to exclude specific target directories,
+# but since we're ignoring the entire target/ above, these lines might not be necessary:
+# !**/src/main/**/target/
+# !**/src/test/**/target/
+
+### Spring Tool Suite (STS) ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+build/
+# Similar to the target/ exclusions, reconsider these if you meant to include specific build directories:
+# !**/src/main/**/build/
+# !**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+schedease/src/main/resources/credentials.json
+schedease/tokens/
+
+# Add additional ignores for build/ directories if needed
+# Generally, ignoring build directories at the root is sufficient for most Java projects
+build/
