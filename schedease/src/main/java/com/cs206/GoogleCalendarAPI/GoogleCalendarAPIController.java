@@ -9,11 +9,14 @@ import java.util.*;
 
 import com.cs206.User.User;
 import com.cs206.User.UserRepository;
+import com.google.api.client.auth.oauth2.BearerToken;
+import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.extensions.java6.auth.oauth2.*;
 import com.google.api.client.googleapis.auth.oauth2.*;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpExecuteInterceptor;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -28,8 +31,6 @@ import com.google.api.services.calendar.*;
 
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
 import java.time.Instant;
 
 import org.apache.commons.lang3.ObjectUtils.Null;
@@ -79,7 +80,8 @@ public class GoogleCalendarAPIController {
         InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             // // Print the absolute path of the file being searched for
-            // System.out.println("File path: " + getClass().getResource(CREDENTIALS_FILE_PATH));
+            // System.out.println("File path: " +
+            // getClass().getResource(CREDENTIALS_FILE_PATH));
 
             throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
         }
@@ -92,27 +94,17 @@ public class GoogleCalendarAPIController {
                 .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
                 .setAccessType("offline")
                 .build();
+
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
 
         // Debug LocalServerReceiver Error400 zzz
-        // System.out.println("LocalServerReceiver is configured to use port: " + receiver.getPort());
+        // System.out.println("LocalServerReceiver is configured to use port: " +
+        // receiver.getPort());
 
         Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
         // returns an authorized Credential object.
         return credential;
     }
-
-    // public Credential refreshIfExpired(Credential credentials) throws IOException {
-        
-
-    //     String accessToken = credentials.getAccessToken();
-    //     String refreshToken = credentials.getRefreshToken();
-    //     Long timeToLive = credentials.getExpirationTimeMilliseconds();
-    //     credentials.refreshToken();
-
-    //     return credentials;
-    // }
-
 
     @GetMapping("/{userId}/getCredentials")
     public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) {
@@ -121,9 +113,11 @@ public class GoogleCalendarAPIController {
             credentials = getCredentials(HTTP_TRANSPORT);
 
             Optional<User> optionalUser = userRepository.findById(userId);
-            if (optionalUser.isPresent()){
+            if (optionalUser.isPresent()) {
                 User user = optionalUser.get();
-                user.setCredential(credentials);
+                // user.setCredential(credentials);
+                user.setAccessToken(credentials.getAccessToken());
+                user.setRefreshToken(credentials.getRefreshToken());
                 userRepository.save(user);
             }
 
@@ -172,11 +166,54 @@ public class GoogleCalendarAPIController {
         return ResponseEntity.ok().body(items);
     }
 
-    @GetMapping("/getEvents/{eventStartDateTime}/{eventEndDateTime}")
+    @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
     public ResponseEntity<List<Event>> getEvents(
+            @PathVariable(value = "userId") String userId,
             @PathVariable(value = "eventStartDateTime") String eventStartDateTime,
             @PathVariable(value = "eventEndDateTime") String eventEndDateTime)
             throws IOException, GeneralSecurityException {
+
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+
+            String accessToken = user.getAccessToken();
+            String refreshToken = user.getRefreshToken();
+
+            // user.setCredential(credentials);
+            // Load client secrets.
+            InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+            if (in == null) {
+                // Print the absolute path of the file being searched for
+                System.out.println("File path: " + getClass().getResource(CREDENTIALS_FILE_PATH));
+
+                throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+            }
+
+            GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+
+            final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+
+            // GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+            // HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
+            // .build();
+
+            // LocalServerReceiver receiver = new
+            // LocalServerReceiver.Builder().setPort(8888).build();
+
+            TokenResponse tokenResponse = new TokenResponse()
+                    .setAccessToken(accessToken)
+                    .setRefreshToken(refreshToken);
+
+            credentials = new Credential.Builder(BearerToken.authorizationHeaderAccessMethod())
+                    .setTransport(HTTP_TRANSPORT)
+                    .setJsonFactory(JSON_FACTORY)
+                    .setClientAuthentication(new ClientParametersAuthentication(
+                            clientSecrets.getDetails().getClientId(), clientSecrets.getDetails().getClientSecret())) 
+                    .setTokenServerEncodedUrl("https://oauth2.googleapis.com/token")
+                    .build()
+                    .setFromTokenResponse(tokenResponse);
+        }
 
         // Build a new authorized API client service.
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
