@@ -161,18 +161,27 @@ public class GoogleCalendarAPIController {
 
     private Credential createCredentialForUser(String accessToken, String refreshToken, NetHttpTransport HTTP_TRANSPORT)
             throws IOException {
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(
-                CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH)));
+        // Load client secrets.
+        InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
-        return new Credential.Builder(BearerToken.authorizationHeaderAccessMethod())
+        // Create the credential
+        Credential credential = new Credential.Builder(BearerToken.authorizationHeaderAccessMethod())
                 .setTransport(HTTP_TRANSPORT)
                 .setJsonFactory(JSON_FACTORY)
                 .setClientAuthentication(new ClientParametersAuthentication(
                         clientSecrets.getDetails().getClientId(), clientSecrets.getDetails().getClientSecret()))
                 .setTokenServerEncodedUrl("https://oauth2.googleapis.com/token")
-                .build()
-                .setAccessToken(accessToken)
-                .setRefreshToken(refreshToken);
+                .build();
+
+        // Set the stored access and refresh tokens.
+        credential.setAccessToken(accessToken);
+        credential.setRefreshToken(refreshToken);
+
+        return credential;
     }
 
     @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
@@ -204,7 +213,7 @@ public class GoogleCalendarAPIController {
             final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
 
             credentials = createCredentialForUser(accessToken, refreshToken, HTTP_TRANSPORT);
-        
+
             // Build a new authorized API client service.
             if (credentials == null) {
                 getCredentials(HTTP_TRANSPORT);
