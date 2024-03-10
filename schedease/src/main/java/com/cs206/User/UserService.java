@@ -18,4 +18,9 @@ public class UserService {
         // TODO Auto-generated method stub
         return userRepository.save(user);
     }
+
+    // public User getUserByUserId (String userId) {
+    //     // TODO Auto-generated method stub
+    //     return userRepository.findUserByUserId(userId);
+    // }
 }

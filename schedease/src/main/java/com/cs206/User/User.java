@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.google.api.client.auth.oauth2.Credential;
-
 @Document(collection = "user")
 @Data
 @AllArgsConstructor
@@ -23,7 +21,9 @@ public class User {
    private List<String> userEventIds;
    private List<String> userMeetingIds;
    private String expoPushToken;
-   private Credential credential;
+   // private Credential credential;
+   private String refreshToken;
+   private String accessToken;
 
 
 }

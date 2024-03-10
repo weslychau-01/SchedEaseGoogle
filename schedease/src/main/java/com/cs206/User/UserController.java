@@ -29,7 +29,7 @@ public class UserController {
     }
 
     @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping("/addUsers")
+    @PostMapping("/addUser")
     public ResponseEntity<String> createUser(@RequestBody User user) {
         List<String> eventId = new ArrayList<>();
         // User user = new User();
