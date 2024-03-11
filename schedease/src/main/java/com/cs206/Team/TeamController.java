@@ -18,11 +18,10 @@ public class TeamController {
     private TeamRepository teamRepository;
 
     //create new team, add first user, set allMembersAdded to false
-    @PostMapping("/{teamName}/{teamUserId}/{firstTeamDateTime}/{lastTeamDateTime}/createTeam")
+    @PostMapping("/{teamName}/{teamUserId}/createTeam")
     public ResponseEntity<Team> createTeam(@PathVariable(value = "teamName") String teamName,
-                                           @PathVariable(value = "teamUserId") String teamUserId,
-                                           @PathVariable(value = "firstTeamDateTime") LocalDateTime firstTeamDateTime,
-                                           @PathVariable(value = "lastTeamDateTime") LocalDateTime lastTeamDateTime) {
+                                           @PathVariable(value = "teamUserId") String teamUserId
+    ) {
 
         List<String> teamUserIds = new ArrayList<>();
         teamUserIds.add(teamUserId);
@@ -31,9 +30,6 @@ public class TeamController {
         team.setTeamName(teamName);
         team.setTeamUserIds(teamUserIds);
         team.setTeamMeetingIds(new ArrayList<String>());
-        team.setFirstTeamDateTime(firstTeamDateTime);
-        team.setLastTeamDateTime(lastTeamDateTime);
-        team.setAllMembersAdded(false);
 
         teamRepository.save(team);
 
@@ -54,6 +50,7 @@ public class TeamController {
         userIds.add(userId);
 
         team.setTeamUserIds(userIds);
+        teamRepository.save(team);
 
         //need to send a notification to everyone in the team
         return new ResponseEntity<String>("User Added", HttpStatus.OK);

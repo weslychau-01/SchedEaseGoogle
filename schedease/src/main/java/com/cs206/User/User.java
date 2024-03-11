@@ -20,7 +20,6 @@ public class User {
    private String userPassword;
    private List<String> userEventIds;
    private List<String> userMeetingIds;
-   private String expoPushToken;
    // private Credential credential;
    // private String encryptedRefreshToken;
    // private String encryptedAccessToken;

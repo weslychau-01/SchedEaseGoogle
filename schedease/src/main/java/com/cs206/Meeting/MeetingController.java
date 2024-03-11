@@ -32,12 +32,60 @@ public class MeetingController {
     @Autowired
     private UserRepository userRepository;
 
-     @Autowired
-     private EventRepository eventRepository;
+    @Autowired
+    private EventRepository eventRepository;
 
     @GetMapping("/getAllMeetings")
     public ResponseEntity<List<Meeting>> getAllEvents(){
         return new ResponseEntity<List<Meeting>>(meetingService.allEvents(), HttpStatus.OK);
+    }
+
+    @PostMapping("/{firstMeeting}/{lastMeeting}/createNewMeeting")
+    public ResponseEntity<?> createNewMeeting(@PathVariable(value = "firstMeeting") LocalDateTime firstMeeting,
+                                              @PathVariable(value = "lastMeeting") LocalDateTime lastMeeting){
+        Meeting meeting = new Meeting();
+
+        meeting.setMeetingTeamId("65eea7fa31aa3e7018267b5d");
+        meeting.setMeetingName("Another New Meeting");
+        meeting.setUserCount(2);
+        meeting.setHasNoConflicts(true);
+        meeting.setIsMeetingSet(false);
+
+//        String firstMeetingString = "2024-03-15T10:00:00";
+//        String lastMeetingString = "2024-03-18T18:00:00";
+//        //set FirstMeetingDateTime and LastMeetingDateTime
+//        meeting.setFirstMeetingDateTime(LocalDateTime.parse(firstMeetingString, formatter));
+//        meeting.setLastMeetingDateTime(LocalDateTime.parse(lastMeetingString, formatter));
+
+        meeting.setFirstMeetingDateTime(firstMeeting);
+        meeting.setLastMeetingDateTime(lastMeeting);
+
+        //set meetingFrequency and Duration
+        meeting.setMeetingFrequency("Once");
+        meeting.setMeetingDurationInSeconds(3600);
+
+        //set Meeting time
+        meeting.setMeetingStartDateTime(null);
+        meeting.setMeetingEndDateTime(null);
+
+        Map<String, Integer> meetingAvailabilities = new TreeMap<>();
+        meetingAvailabilities.put("2024-03-15T10:00:00_2024-03-15T11:00:00", 0);
+        meetingAvailabilities.put("2024-03-15T12:00:00_2024-03-15T12:30:00", 0);
+        meetingAvailabilities.put("2024-03-15T15:00:00_2024-03-15T14:00:00", 0);
+        meetingAvailabilities.put("2024-03-16T12:00:00_2024-03-16T13:00:00", 0);
+        meetingAvailabilities.put("2024-03-17T12:00:00_2024-03-17T13:00:00", 0);
+        meetingAvailabilities.put("2024-03-18T14:00:00_2024-03-18T15:00:00", 0);
+        meeting.setMeetingAvailabilities(meetingAvailabilities);
+
+
+        Map<String, Boolean> hasUserVoted = new HashMap<>();
+        hasUserVoted.put("65eea6418119e25bbacea7d3", false);
+        hasUserVoted.put("65eea64b8119e25bbacea7d4", false);
+        meeting.setHasUserVoted(hasUserVoted);
+
+
+        meetingRepository.save(meeting);
+        return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
     }
 
     @GetMapping("{meetingId}/getMeeting")
@@ -130,7 +178,7 @@ public class MeetingController {
 
         //get the unavailable timings for the users
         List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstDateTimeLimit, lastDateTimeLimit);
-       //sort the timings based on startDateTime
+        //sort the timings based on startDateTime
         unavailableTimings.sort(Comparator.comparing(interval -> interval.getStartDateTime()));
 
         //get possible meeting timings based on timeLimit, the list of unavailable timings and meeting duration
@@ -282,8 +330,8 @@ public class MeetingController {
             meeting.setMeetingDurationInSeconds(meeting.getMeetingDurationInSeconds());
 
             //set Meeting time
-            meeting.setMeetingStartDateTime(meeting.getFirstMeetingDateTime());
-            meeting.setMeetingEndDateTime(meeting.getLastMeetingDateTime());
+            meeting.setMeetingStartDateTime(null);
+            meeting.setMeetingEndDateTime(null);
 
             meeting.setMeetingAvailabilities(meetingAvailabilities);
 
@@ -395,7 +443,7 @@ public class MeetingController {
         //for repeated meetings, check the frequency
         int weekCount = 0;
         if (meeting.getMeetingFrequency().compareTo("Weekly") == 0){
-           weekCount = 1;
+            weekCount = 1;
         } else if (meeting.getMeetingFrequency().compareTo("Fortnightly") == 0) {
             weekCount = 2;
         } else if (meeting.getMeetingFrequency().compareTo("Monthly") == 0) {
@@ -460,7 +508,7 @@ public class MeetingController {
                 if (unavailableTime.getStartDateTime().isEqual(meetStartDateTime) ||
                         unavailableTime.getStartDateTime().isBefore(meetEndDateTime) && unavailableTime.getStartDateTime().isAfter(meetStartDateTime) ||
                         unavailableTime.getEndDateTime().isAfter(meetStartDateTime) && unavailableTime.getEndDateTime().isBefore(meetEndDateTime) ||
-                unavailableTime.getEndDateTime().isEqual(meetEndDateTime)){
+                        unavailableTime.getEndDateTime().isEqual(meetEndDateTime)){
                     meetings.put(meet, false);
                     meet.setHasNoConflicts(false);
                     break;
@@ -475,6 +523,4 @@ public class MeetingController {
         //returns the all the meetings
         return new ResponseEntity <Map<Meeting, Boolean>> (meetings, HttpStatus.OK); //need send notification
     }
-
-
 }
