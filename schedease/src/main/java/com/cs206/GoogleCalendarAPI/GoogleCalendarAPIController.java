@@ -65,14 +65,13 @@ public class GoogleCalendarAPIController {
      *
      * @param HTTP_TRANSPORT The network HTTP Transport.
      * @return An authorized Credential object.
-     * @throws IOException If the cs206-schedease-c8d9ed0677a2.json file cannot be
-     *                     found.
+     * @throws IOException If the credentials.json is not found.
      */
     private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT)
             throws IOException {
 
         // Load client secrets.
-        InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             // // Print the absolute path of the file being searched for
             // System.out.println("File path: " +
@@ -198,7 +197,7 @@ System.out.println(aToken);
     private Credential createCredentialForUser(String accessToken, String refreshToken, NetHttpTransport HTTP_TRANSPORT)
             throws IOException {
         // Load client secrets.
-        InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
         }
@@ -310,7 +309,7 @@ System.out.println(aToken);
             throws IOException, GeneralSecurityException {
 
         // Load client secrets.
-        InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             // // Print the absolute path of the file being searched for
             // System.out.println("File path: " +
