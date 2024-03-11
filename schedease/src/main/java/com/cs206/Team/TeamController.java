@@ -18,11 +18,11 @@ public class TeamController {
     private TeamRepository teamRepository;
 
     //create new team, add first user, set allMembersAdded to false
-    @PostMapping("/{teamName}/{teamUserId}/{userCount}/{firstTeamDateTime}/{lastTeamDateTime}/createTeam")
+    @PostMapping("/{teamName}/{teamUserId}/{firstTeamDateTime}/{lastTeamDateTime}/createTeam")
     public ResponseEntity<Team> createTeam(@PathVariable(value = "teamName") String teamName,
                                            @PathVariable(value = "teamUserId") String teamUserId,
                                            @PathVariable(value = "firstTeamDateTime") LocalDateTime firstTeamDateTime,
-                                           @PathVariable(value = "lastTeamDateTime") LocalDateTime lastTeamDateTime){
+                                           @PathVariable(value = "lastTeamDateTime") LocalDateTime lastTeamDateTime) {
 
         List<String> teamUserIds = new ArrayList<>();
         teamUserIds.add(teamUserId);
@@ -42,10 +42,10 @@ public class TeamController {
 
     //add user to the team
     @PutMapping("/{userId}/{teamId}/addUser")
-    public ResponseEntity<String> addUser(@PathVariable(value = "userId") String userId, @PathVariable(value = "teamId")String teamId){
+    public ResponseEntity<String> addUser(@PathVariable(value = "userId") String userId, @PathVariable(value = "teamId") String teamId) {
         Optional<Team> optionalTeam = teamRepository.findById(teamId);
         Team team = new Team();
-        if (optionalTeam.isPresent()){
+        if (optionalTeam.isPresent()) {
             team = optionalTeam.get();
         }
 
@@ -61,10 +61,21 @@ public class TeamController {
 
     //get team by teamId
     @GetMapping("/{teamId}/getTeamById")
-    public ResponseEntity<Team> getTeamById(@PathVariable(value = "teamId")String teamId){
+    public ResponseEntity<Team> getTeamById(@PathVariable(value = "teamId") String teamId) {
         Optional<Team> optionalTeam = teamRepository.findById(teamId);
         Team team = new Team();
-        if (optionalTeam.isPresent()){
+        if (optionalTeam.isPresent()) {
+            team = optionalTeam.get();
+        }
+
+        return new ResponseEntity<Team>(team, HttpStatus.OK);
+    }
+
+    @GetMapping("/{teamName}/getTeamByName")
+    public ResponseEntity<Team> getTeamByName(@PathVariable(value = "teamName") String teamName) {
+        Optional<Team> optionalTeam = teamRepository.findByTeamName(teamName);
+        Team team = new Team();
+        if (optionalTeam.isPresent()) {
             team = optionalTeam.get();
         }
 
@@ -73,56 +84,9 @@ public class TeamController {
 
     //delete meeting by teamId
     @DeleteMapping("/{teamId}/deleteTeamById")
-    public ResponseEntity<String> deleteTeamById(@PathVariable(value = "teamId")String teamId){
+    public ResponseEntity<String> deleteTeamById(@PathVariable(value = "teamId") String teamId) {
         teamRepository.deleteById(teamId);
         return new ResponseEntity<String>("Team Deleted", HttpStatus.OK);
     }
 
-
-    //create a new meeting
-//    @PostMapping("/{TeamId}/{firstMeetingDateTime}/{LastMeetingDateTime}/{meetingFrequency}/{meetingDurationInSeconds}/createMeeting")
-//    public ResponseEntity<Meeting> createMeeting(@PathVariable(value = "teamId") String teamId,
-//                                              @PathVariable(value = "firstMeetingDateTime") LocalDateTime firstMeetingDateTime,
-//                                              @PathVariable(value = "lastMeetingDateTime") LocalDateTime lastMeetingDateTime,
-//                                              @PathVariable(value = "meetingFrequency") String meetingFrequency,
-//                                              @PathVariable(value = "meetingDurationInSeconds") long meetingDurationInSeconds){
-//
-//        Optional<Team> optionalTeam = teamRepository.findById(teamId);
-//        Team team = new Team();
-//        if (optionalTeam.isPresent()){
-//            team = optionalTeam.get();
-//        }
-//
-//        List<String> meetingUserIds = team.getTeamUserIds();
-//
-//        Meeting meeting = new Meeting();
-//        //set meetingTeamId to teamId
-//        meeting.setMeetingTeamId(teamId);
-//
-//        //set FirstMeetingDateTime and LastMeetingDateTime
-//        meeting.setFirstMeetingDateTime(firstMeetingDateTime);
-//        meeting.setLastMeetingDateTimee(lastMeetingDateTime);
-//
-//        //set meetingFrequency and Duration
-//        meeting.setMeetingFrequency(meetingFrequency);
-//        meeting.setMeetingDurationInSeconds(meetingDurationInSeconds);
-//
-//        //set Meeting time to null
-//        meeting.setMeetingStartDateTime(null);
-//        meeting.setMeetingEndDateTime(null);
-//
-//        //set meetingAvailablities to empty map
-//        Map<String, Integer> meetingAvailabilities = new HashMap<>();
-//        meeting.setMeetingAvailabilites(meetingAvailabilities);
-//
-//        //set hasUserVoted to empty map
-//        Map<String, Boolean> hasUserVoted = new HashMap<>();
-//        for (String userId : meetingUserIds){
-//            hasUserVoted.putIfAbsent(userId, false);
-//        }
-//        meeting.setHasUserVoted(hasUserVoted);
-//
-//
-//        return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
-//    }
 }

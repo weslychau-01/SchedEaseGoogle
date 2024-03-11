@@ -4,16 +4,34 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.cs206.Event.Event;
+import com.cs206.Event.EventRepository;
 import com.cs206.Interval.*;
+import com.cs206.Team.Team;
+import com.cs206.Team.TeamRepository;
+import com.cs206.User.User;
+import com.cs206.User.UserRepository;
 
 @Service
 public class MeetingService {
     @Autowired
     private MeetingRepository meetingRepository;
+
+    @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private TeamRepository teamRepository;
 
     public List<Meeting> allEvents() {
         // TODO Auto-generated method stub
@@ -65,4 +83,93 @@ public class MeetingService {
         return slots;
     }
 
+    //how to algo it?
+    public Map<String, Boolean> getConsecutiveMeetingTimings(Meeting firstMeeting, Integer weekCount){
+        Map<String, Boolean> nextMeetingTimings = new TreeMap<>();
+
+        //first meeting timing
+        Interval firstMeetingTiming = new Interval(firstMeeting.getMeetingStartDateTime(), firstMeeting.getMeetingEndDateTime());
+
+        //meeting Time Limit
+        Interval meetingLimit = new Interval(firstMeeting.getFirstMeetingDateTime(), firstMeeting.getLastMeetingDateTime());
+
+        LocalDateTime nextMeetingStartDateTime = firstMeeting.getMeetingStartDateTime().plusWeeks(weekCount);
+        LocalDateTime nextMeetingEndDateTime = firstMeeting.getMeetingEndDateTime().plusWeeks(weekCount);
+
+        while (nextMeetingEndDateTime.isBefore(meetingLimit.getEndDateTime()) ||
+                (nextMeetingEndDateTime.isEqual(meetingLimit.getEndDateTime()))){
+            Interval nextMeetingTime = new Interval(nextMeetingStartDateTime, nextMeetingEndDateTime);
+            String nextMeetingTimeString = nextMeetingTime.convertToString();
+            nextMeetingTimings.putIfAbsent(nextMeetingTimeString, true);
+
+            nextMeetingStartDateTime = nextMeetingStartDateTime.plusWeeks(weekCount);
+            nextMeetingEndDateTime = nextMeetingEndDateTime.plusWeeks(weekCount);
+        }
+
+        return nextMeetingTimings;
+    }
+
+
+    public List<Interval> getUnavailableTimings (Team team, LocalDateTime firstDateTimeLimit, LocalDateTime lastDateTimeLimit){
+
+        //get the list of usedIds from the team
+        List<String> userIds = team.getTeamUserIds();
+
+        //get a list of userIds from the team
+        List<User> users = new ArrayList<>();
+        for (String userId : userIds){
+            User user = new User();
+            Optional<User> optionalUser = userRepository.findById(userId);
+            if (optionalUser.isPresent()){
+                user = optionalUser.get();
+                //add users to users list
+                users.add(user);
+            }
+        }
+
+        //get eventIds from the users, for each eventId, get the event, check the time within meeting date, add it to list
+        List<Interval> unavailableTimings = new ArrayList<Interval>();
+        List<String> eventIds = new ArrayList<>();
+        for (User user : users){
+            //from CALENDAR
+            //get the credentials, run the service giving the first date time and last date time and getting back
+            //the timing
+
+
+            //seperate method
+            //List<Event> events = user.getUserEvents();
+//            for (Event event : events){
+//                LocalDateTime eventStartDate = event.getEventStartDateTime();
+//                LocalDateTime eventEndDate = event.getEventEndDateTime();
+//
+//                //check the eventStartDate & eventEndDate is within the meeting dates
+//                if ((eventStartDate.isAfter(firstDateTimeLimit) || eventStartDate.isEqual(firstDateTimeLimit))
+//                        && (eventStartDate.isBefore(lastDateTimeLimit) || eventStartDate.isEqual(lastDateTimeLimit))){
+//                    unavailableTimings.add(new Interval(event.getEventStartDateTime(), event.getEventEndDateTime()));
+//                }
+//            }
+
+            List<String> userEventIds = user.getUserEventIds();
+            //for each user, get the list of userEventIds
+            for (String userEventId : userEventIds){
+                Event event = new Event();
+                Optional<Event> optionalEvent = eventRepository.findById(userEventId);
+                //get the event
+                if (optionalEvent.isPresent()){
+                    event = optionalEvent.get();
+                    //get the startDate and endDate for the event
+                    LocalDateTime eventStartDate = event.getEventStartDateTime();
+                    LocalDateTime eventEndDate = event.getEventEndDateTime();
+
+                    //check the eventStartDate & eventEndDate is within the meeting dates
+                    if ((eventStartDate.isAfter(firstDateTimeLimit) || eventStartDate.isEqual(firstDateTimeLimit))
+                            && (eventStartDate.isBefore(lastDateTimeLimit) || eventStartDate.isEqual(lastDateTimeLimit))){
+                        unavailableTimings.add(new Interval(event.getEventStartDateTime(), event.getEventEndDateTime()));
+                    }
+                }
+            }
+        }
+
+        return unavailableTimings;
+    }
 }

@@ -21,11 +21,13 @@ public class Meeting {
     private String meetingTeamId;
     private int userCount;
     private LocalDateTime firstMeetingDateTime;
-    private LocalDateTime lastMeetingDateTimee;
+    private LocalDateTime lastMeetingDateTime;
     private LocalDateTime meetingStartDateTime;
     private LocalDateTime meetingEndDateTime;
     private long meetingDurationInSeconds;
     private String meetingFrequency;
-    private Map<String, Integer> meetingAvailabilites;
+    private Map<String, Integer> meetingAvailabilities;
     private Map<String, Boolean> hasUserVoted;
+    private Boolean hasNoConflicts;
+    private Boolean isMeetingSet;
 }
