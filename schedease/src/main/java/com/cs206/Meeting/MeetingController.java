@@ -450,24 +450,56 @@ public class MeetingController {
             weekCount = 4;
         }
 
-        //get the list of next Meeting timings
+        //get the list of next Meeting timings (After the first one)
         Map<String, Boolean> nextMeetingTimings = new TreeMap<>();
         nextMeetingTimings = meetingService.getConsecutiveMeetingTimings(meeting, weekCount);
 
-        //Create the next meetings and put all meetings into a map indicat
+        //get the team for the meeting
+        Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+        Team team = new Team();
+        if (optionalTeam.isPresent()){
+            team = optionalTeam.get();
+        }
+
+        //find the list of unavailable timings
+        List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstMeetingDateTime, lastMeetingDateTime);
+
+        //Create the next meetings and put all meetings into a map
         Map<Meeting, Boolean> meetings = new HashMap<>();
+
+        //set the first meeting into the meeting map
         meetings.putIfAbsent(meeting, true);
+
+        //for each meeting timing
         for (String meetingTiming : nextMeetingTimings.keySet()){
+
             Meeting newMeeting = new Meeting();
             String[] array = meetingTiming.split("_");
             LocalDateTime newMeetingStartTime = LocalDateTime.parse(array[0], formatter);
             LocalDateTime newMeetingEndTime = LocalDateTime.parse(array[1], formatter);
 
+            //to check if the meeting has conflict or not
+            Boolean meetingHasNoConflict = true;
 
+            //if the event timing is same time / within the time of the event, then put as false, indicate need to reschedule
+            //check if start time equal, start time within the timing, end time within the timing, end time equal end time
+            for (Interval unavailableTime : unavailableTimings){
+                if (unavailableTime.getStartDateTime().isEqual(newMeetingStartTime) ||
+                        unavailableTime.getStartDateTime().isBefore(newMeetingEndTime) && unavailableTime.getStartDateTime().isAfter(newMeetingStartTime) ||
+                        unavailableTime.getEndDateTime().isAfter(newMeetingStartTime) && unavailableTime.getEndDateTime().isBefore(newMeetingEndTime) ||
+                        unavailableTime.getEndDateTime().isEqual(newMeetingEndTime)){
+
+                    //if there is a clash in timing
+                    meetingHasNoConflict = false;
+                    break;
+                }
+            }
+
+            //set new meeting parameters
             newMeeting.setMeetingTeamId(meeting.getMeetingTeamId());
             newMeeting.setMeetingName(meeting.getMeetingName());
             newMeeting.setUserCount(meeting.getUserCount());
-            newMeeting.setHasNoConflicts(true);
+            newMeeting.setHasNoConflicts(meetingHasNoConflict);
             newMeeting.setIsMeetingSet(true);
 
             //set FirstMeetingDateTime and LastMeetingDateTime
@@ -482,44 +514,16 @@ public class MeetingController {
             newMeeting.setMeetingStartDateTime(newMeetingStartTime);
             newMeeting.setMeetingEndDateTime(newMeetingEndTime);
 
+            //set meetingAvailabilities and hasUserVoted to null
             newMeeting.setMeetingAvailabilities(null);
             newMeeting.setHasUserVoted(null);
 
-            meetings.putIfAbsent(newMeeting, true);
+            //put into the map to be returned
+            meetings.putIfAbsent(newMeeting, meetingHasNoConflict);
+
+            //save the new meetings
+            meetingRepository.save(newMeeting);
         }
-
-//        using the teamId find team
-        Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
-        Team team = new Team();
-        if (optionalTeam.isPresent()){
-            team = optionalTeam.get();
-        }
-
-        List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstMeetingDateTime, lastMeetingDateTime);
-
-        //for each meeting, check each event timing of user
-        for (Meeting meet : meetings.keySet()){
-            LocalDateTime meetStartDateTime = meet.getMeetingStartDateTime();
-            LocalDateTime meetEndDateTime = meet.getMeetingEndDateTime();
-
-            //if the event timing is same time / within the time of the event, then put as false, indicate need to reschedule
-            //check if start time equal, start time within the timing, end time within the timing, end time equal end time
-            for (Interval unavailableTime : unavailableTimings){
-                if (unavailableTime.getStartDateTime().isEqual(meetStartDateTime) ||
-                        unavailableTime.getStartDateTime().isBefore(meetEndDateTime) && unavailableTime.getStartDateTime().isAfter(meetStartDateTime) ||
-                        unavailableTime.getEndDateTime().isAfter(meetStartDateTime) && unavailableTime.getEndDateTime().isBefore(meetEndDateTime) ||
-                        unavailableTime.getEndDateTime().isEqual(meetEndDateTime)){
-                    meetings.put(meet, false);
-                    meet.setHasNoConflicts(false);
-                    break;
-                }
-            }
-        }
-
-        for(Meeting meet : meetings.keySet()){
-            meetingRepository.save(meet);
-        }
-
         //returns the all the meetings
         return new ResponseEntity <Map<Meeting, Boolean>> (meetings, HttpStatus.OK); //need send notification
     }
