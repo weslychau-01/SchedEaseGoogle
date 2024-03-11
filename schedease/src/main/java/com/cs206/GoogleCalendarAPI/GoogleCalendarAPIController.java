@@ -15,9 +15,12 @@ import com.cs206.User.UserRepository;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.auth.oauth2.RefreshTokenRequest;
+import com.google.api.client.auth.oauth2.TokenRequest;
 import com.google.api.client.extensions.java6.auth.oauth2.*;
 import com.google.api.client.googleapis.auth.oauth2.*;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -86,6 +89,7 @@ public class GoogleCalendarAPIController {
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
                 .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
+                .setApprovalPrompt("force")
                 .setAccessType("offline")
                 .build();
 
@@ -96,11 +100,12 @@ public class GoogleCalendarAPIController {
         // receiver.getPort());
 
         Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+        // System.out.println(credential.getRefreshToken());
         // returns an authorized Credential object.
         return credential;
     }
 
-    /*
+    
     @GetMapping("/{userId}/getCredentials")
     public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) throws Exception {
         try {
@@ -118,7 +123,7 @@ public class GoogleCalendarAPIController {
                 user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
                 String aToken = credentials.getAccessToken();
                 String rToken = credentials.getRefreshToken();
-System.out.println(aToken);
+// System.out.println(aToken);
 // System.out.println(rToken);
                 user.setEncryptedAccessToken(EncryptionUtil.encrypt(aToken, secretKey));
                 user.setEncryptedRefreshToken(EncryptionUtil.encrypt(rToken, secretKey));
@@ -132,7 +137,8 @@ System.out.println(aToken);
             return ResponseEntity.internalServerError().body("Failed to get credentials: " + e.getMessage());
         }
     }
-    */
+    
+    /*
     @GetMapping("/{userId}/getCredentials")
     public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) {
         try {
@@ -144,6 +150,7 @@ System.out.println(aToken);
                 User user = optionalUser.get();
                 // user.setCredential(credentials);
                 user.setAccessToken(credentials.getAccessToken());
+                System.out.println(credentials.getRefreshToken());
                 user.setRefreshToken(credentials.getRefreshToken());
                 userRepository.save(user);
             }
@@ -155,6 +162,7 @@ System.out.println(aToken);
             return ResponseEntity.internalServerError().body("Failed to get credentials: " + e.getMessage());
         }
     }
+    */
 
     @GetMapping("/getAllEvents")
     public ResponseEntity<?> test() throws IOException, GeneralSecurityException {
@@ -219,7 +227,7 @@ System.out.println(aToken);
         return credential;
     }
 
-    /*
+    
     @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
     public ResponseEntity<List<Event>> getEvents(
             @PathVariable(value = "userId") String userId,
@@ -228,7 +236,7 @@ System.out.println(aToken);
             throws IOException, GeneralSecurityException, Exception {
 
         // Load client secrets.
-        InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             // // Print the absolute path of the file being searched for
             // System.out.println("File path: " +
@@ -299,8 +307,8 @@ System.out.println(aToken);
             throw new UserNotFoundException(userId);
         }
     }
-    */
-
+    
+/*
     @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
     public ResponseEntity<List<Event>> getEvents(
             @PathVariable(value = "userId") String userId,
@@ -378,4 +386,5 @@ System.out.println(aToken);
             throw new UserNotFoundException(userId);
         }
     }
+     */
 }
