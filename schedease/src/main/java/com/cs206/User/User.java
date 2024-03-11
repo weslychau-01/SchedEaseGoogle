@@ -22,6 +22,9 @@ public class User {
    private List<String> userMeetingIds;
    private String expoPushToken;
    // private Credential credential;
+   // private String encryptedRefreshToken;
+   // private String encryptedAccessToken;
+   // private String serialisedKey;
    private String refreshToken;
    private String accessToken;
 

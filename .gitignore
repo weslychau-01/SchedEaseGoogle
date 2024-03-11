@@ -35,6 +35,7 @@ build/
 
 ### VS Code ###
 .vscode/
+schedease/src/main/
 schedease/src/main/resources/credentials.json
 schedease/src/main/resources/my_credentials.json
 schedease/src/main/resources/application.properties

@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 
 import java.util.*;
 
+import javax.crypto.SecretKey;
+
 import com.cs206.User.User;
 import com.cs206.User.UserNotFoundException;
 import com.cs206.User.UserRepository;
@@ -26,6 +28,7 @@ import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
 import com.google.api.client.extensions.jetty.auth.oauth2.*;
+import com.Encryption.*;
 
 import java.security.GeneralSecurityException;
 
@@ -98,6 +101,39 @@ public class GoogleCalendarAPIController {
         return credential;
     }
 
+    /*
+    @GetMapping("/{userId}/getCredentials")
+    public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) throws Exception {
+        try {
+            final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+            Credential credentials = getCredentials(HTTP_TRANSPORT);
+
+            User user;
+            SecretKey secretKey = EncryptionUtil.generateSecretKey();
+            
+            Optional<User> optionalUser = userRepository.findById(userId);
+            if (optionalUser.isPresent()) {
+
+                user = optionalUser.get();
+                // user.setCredential(credentials);
+                user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
+                String aToken = credentials.getAccessToken();
+                String rToken = credentials.getRefreshToken();
+System.out.println(aToken);
+// System.out.println(rToken);
+                user.setEncryptedAccessToken(EncryptionUtil.encrypt(aToken, secretKey));
+                user.setEncryptedRefreshToken(EncryptionUtil.encrypt(rToken, secretKey));
+                userRepository.save(user);
+            }
+
+            // Use the credentials as needed
+            return ResponseEntity.ok().build();
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Failed to get credentials: " + e.getMessage());
+        }
+    }
+    */
     @GetMapping("/{userId}/getCredentials")
     public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) {
         try {
@@ -183,6 +219,88 @@ public class GoogleCalendarAPIController {
 
         return credential;
     }
+
+    /*
+    @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
+    public ResponseEntity<List<Event>> getEvents(
+            @PathVariable(value = "userId") String userId,
+            @PathVariable(value = "eventStartDateTime") String eventStartDateTime,
+            @PathVariable(value = "eventEndDateTime") String eventEndDateTime)
+            throws IOException, GeneralSecurityException, Exception {
+
+        // Load client secrets.
+        InputStream in = CalendarService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            // // Print the absolute path of the file being searched for
+            // System.out.println("File path: " +
+            // getClass().getResource(CREDENTIALS_FILE_PATH));
+
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+
+        Credential credentials;
+
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+
+            SecretKey k = EncryptionUtil.getSecretKeyFromSecretString(user.getSerialisedKey());
+        
+            String accessToken = EncryptionUtil.decrypt(user.getEncryptedAccessToken(), k);
+            String refreshToken = EncryptionUtil.decrypt(user.getEncryptedRefreshToken(), k);
+
+            final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+
+            credentials = createCredentialForUser(accessToken, refreshToken, HTTP_TRANSPORT);
+
+            // Build a new authorized API client service.
+            if (credentials == null) {
+                getCredentials(HTTP_TRANSPORT);
+            } else {
+                credentials.refreshToken();
+            }
+            Calendar service = new Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credentials)
+                    .setApplicationName(APPLICATION_NAME)
+                    .build();
+
+            // Format the start and end date/time to RFC3339
+            String startDateTimeStr = eventStartDateTime + 'Z';
+            String endDateTimeStr = eventEndDateTime + 'Z';
+
+            DateTime startDateTime = new DateTime(startDateTimeStr);
+            DateTime endDateTime = new DateTime(endDateTimeStr);
+
+            Events events = service.events().list("primary")
+                    .setTimeMax(endDateTime)
+                    .setTimeMin(startDateTime)
+                    .setOrderBy("startTime")
+                    .setSingleEvents(true)
+                    .execute();
+
+            List<Event> items = events.getItems();
+            if (items.isEmpty()) {
+                System.out.println("No upcoming events found.");
+                return ResponseEntity.ok().body(Collections.emptyList());
+            } else {
+                System.out.println("Upcoming events");
+                for (Event event : items) {
+                    DateTime start = event.getStart().getDateTime();
+                    DateTime end = event.getEnd().getDateTime();
+                    if (start == null) {
+                        start = event.getStart().getDate();
+                    }
+                    if (end == null) {
+                        end = event.getEnd().getDate();
+                    }
+                    System.out.printf("%s (%s) to (%s)\n", event.getSummary(), start, end);
+                }
+                return ResponseEntity.ok().body(items);
+            }
+        } else {
+            throw new UserNotFoundException(userId);
+        }
+    }
+    */
 
     @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
     public ResponseEntity<List<Event>> getEvents(
