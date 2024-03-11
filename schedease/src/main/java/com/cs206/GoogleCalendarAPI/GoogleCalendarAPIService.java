@@ -15,12 +15,9 @@ import com.cs206.User.UserRepository;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.auth.oauth2.RefreshTokenRequest;
-import com.google.api.client.auth.oauth2.TokenRequest;
 import com.google.api.client.extensions.java6.auth.oauth2.*;
 import com.google.api.client.googleapis.auth.oauth2.*;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -31,17 +28,15 @@ import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
 import com.google.api.client.extensions.jetty.auth.oauth2.*;
-//import com.Encryption.*;
+import com.Encryption.*;
 
 import java.security.GeneralSecurityException;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Service;
 
-@RestController
-@RequestMapping("/Google") // Base path for this controller
-public class GoogleCalendarAPIController {
+@Service
+public class GoogleCalendarAPIService {
     /**
      * Global instance of the JSON factory.
      */
@@ -74,7 +69,7 @@ public class GoogleCalendarAPIController {
             throws IOException {
 
         // Load client secrets.
-        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             // // Print the absolute path of the file being searched for
             // System.out.println("File path: " +
@@ -106,8 +101,7 @@ public class GoogleCalendarAPIController {
     }
 
     
-    @GetMapping("/{userId}/getCredentials")
-    public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) throws Exception {
+    public void getCredentials(String userId) throws Exception {
         try {
             final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
             Credential credentials = getCredentials(HTTP_TRANSPORT);
@@ -131,10 +125,11 @@ public class GoogleCalendarAPIController {
             }
 
             // Use the credentials as needed
-            return ResponseEntity.ok().build();
+            return;
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Failed to get credentials: " + e.getMessage());
+            System.out.println("Failed to get credentials: " + e.getMessage());
+            return;
         }
     }
     
@@ -164,48 +159,10 @@ public class GoogleCalendarAPIController {
     }
     */
 
-    @GetMapping("/getAllEvents")
-    public ResponseEntity<?> test() throws IOException, GeneralSecurityException {
-        // Build a new authorized API client service.
-        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        Credential credentials = getCredentials(HTTP_TRANSPORT);
-        if (credentials == null) {
-            getCredentials(HTTP_TRANSPORT);
-        } else {
-            credentials.refreshToken();
-        }
-        Calendar service = new Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credentials)
-                // .setApplicationName(APPLICATION_NAME)
-                .build();
-
-        // List the next 10 events from the primary calendar.
-        DateTime now = new DateTime(System.currentTimeMillis());
-        Events events = service.events().list("primary")
-                .setMaxResults(10)
-                .setTimeMin(now)
-                .setOrderBy("startTime")
-                .setSingleEvents(true)
-                .execute();
-        List<Event> items = events.getItems();
-        if (items.isEmpty()) {
-            System.out.println("No upcoming events found.");
-        } else {
-            System.out.println("Upcoming events");
-            for (Event event : items) {
-                DateTime start = event.getStart().getDateTime();
-                if (start == null) {
-                    start = event.getStart().getDate();
-                }
-                System.out.printf("%s (%s)\n", event.getSummary(), start);
-            }
-        }
-        return ResponseEntity.ok().body(items);
-    }
-
     private Credential createCredentialForUser(String accessToken, String refreshToken, NetHttpTransport HTTP_TRANSPORT)
             throws IOException {
         // Load client secrets.
-        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
         }
@@ -227,16 +184,11 @@ public class GoogleCalendarAPIController {
         return credential;
     }
 
-    
-    @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
-    public ResponseEntity<List<Event>> getEvents(
-            @PathVariable(value = "userId") String userId,
-            @PathVariable(value = "eventStartDateTime") String eventStartDateTime,
-            @PathVariable(value = "eventEndDateTime") String eventEndDateTime)
+    public List<Event> getEvents(String userId, String eventStartDateTime, String eventEndDateTime)
             throws IOException, GeneralSecurityException, Exception {
 
         // Load client secrets.
-        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             // // Print the absolute path of the file being searched for
             // System.out.println("File path: " +
@@ -287,7 +239,7 @@ public class GoogleCalendarAPIController {
             List<Event> items = events.getItems();
             if (items.isEmpty()) {
                 System.out.println("No upcoming events found.");
-                return ResponseEntity.ok().body(Collections.emptyList());
+                return Collections.emptyList();
             } else {
                 System.out.println("Upcoming events");
                 for (Event event : items) {
@@ -301,7 +253,7 @@ public class GoogleCalendarAPIController {
                     }
                     System.out.printf("%s (%s) to (%s)\n", event.getSummary(), start, end);
                 }
-                return ResponseEntity.ok().body(items);
+                return items;
             }
         } else {
             throw new UserNotFoundException(userId);
@@ -317,7 +269,7 @@ public class GoogleCalendarAPIController {
             throws IOException, GeneralSecurityException {
 
         // Load client secrets.
-        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        InputStream in = GoogleCalendarAPIService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
             // // Print the absolute path of the file being searched for
             // System.out.println("File path: " +
@@ -387,4 +339,43 @@ public class GoogleCalendarAPIController {
         }
     }
      */
+
+     
+
+    public void test() throws IOException, GeneralSecurityException {
+        // Build a new authorized API client service.
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        Credential credentials = getCredentials(HTTP_TRANSPORT);
+        if (credentials == null) {
+            getCredentials(HTTP_TRANSPORT);
+        } else {
+            credentials.refreshToken();
+        }
+        Calendar service = new Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credentials)
+                // .setApplicationName(APPLICATION_NAME)
+                .build();
+
+        // List the next 10 events from the primary calendar.
+        DateTime now = new DateTime(System.currentTimeMillis());
+        Events events = service.events().list("primary")
+                .setMaxResults(10)
+                .setTimeMin(now)
+                .setOrderBy("startTime")
+                .setSingleEvents(true)
+                .execute();
+        List<Event> items = events.getItems();
+        if (items.isEmpty()) {
+            System.out.println("No upcoming events found.");
+        } else {
+            System.out.println("Upcoming events");
+            for (Event event : items) {
+                DateTime start = event.getStart().getDateTime();
+                if (start == null) {
+                    start = event.getStart().getDate();
+                }
+                System.out.printf("%s (%s)\n", event.getSummary(), start);
+            }
+        }
+        return;
+    }
 }

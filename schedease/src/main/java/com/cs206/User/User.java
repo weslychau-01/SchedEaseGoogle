@@ -21,11 +21,11 @@ public class User {
    private List<String> userEventIds;
    private List<String> userMeetingIds;
    // private Credential credential;
-   // private String encryptedRefreshToken;
-   // private String encryptedAccessToken;
-   // private String serialisedKey;
-   private String refreshToken;
-   private String accessToken;
+   private String encryptedRefreshToken;
+   private String encryptedAccessToken;
+   private String serialisedKey;
+   // private String refreshToken;
+   // private String accessToken;
 
 
 }
