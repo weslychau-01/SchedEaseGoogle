@@ -2,6 +2,7 @@ package com.cs206.User;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Autowired UserRepository userRepository;
 
     @GetMapping("/getUsers")
     public ResponseEntity<?> getAllUsers() {
@@ -34,7 +37,42 @@ public class UserController {
         // user.setUserPassword("john123");
         user.setUserEventIds(new ArrayList<>());
         user.setUserMeetingIds(new ArrayList<String>());
-        userService.save(user);
+        userRepository.save(user);
         return new ResponseEntity<>("User Saved", HttpStatus.OK);
     }
+
+    @PostMapping("/{userName}/{userEmail}/{userPassword}/signUp")
+    public ResponseEntity<?> signUp(@PathVariable(value = "userName") String userName, @PathVariable(value = "userEmail")String userEmail,
+                                    @PathVariable(value = "userPassword") String userPassword){
+        User user = new User();
+
+        user.setUserName(userName);
+        user.setUserEmail(userEmail);
+        user.setUserPassword(userPassword);
+        user.setUserEventIds(new ArrayList<>());
+        user.setUserMeetingIds(new ArrayList<>());
+        userRepository.save(user);
+
+        return new ResponseEntity<User>(user, HttpStatus.OK);
+    }
+
+    @PostMapping("{userEmail}/{userPassword}/login")
+    public ResponseEntity<?> login(@PathVariable(value = "userEmail")String userEmail,
+                                   @PathVariable(value = "userPassword") String userPassword){
+        Optional<User> optionalUser = userRepository.findByUserEmail(userEmail);
+        User user = new User();
+        if (optionalUser.isPresent()){
+            user = optionalUser.get();
+        }
+
+        if (user.getUserPassword().compareTo(userPassword) != 0){
+            return new ResponseEntity<Boolean> (true, HttpStatus.OK);
+        }
+
+        return new ResponseEntity<Boolean>(false, HttpStatus.OK);
+    }
+
+
 }
+
+

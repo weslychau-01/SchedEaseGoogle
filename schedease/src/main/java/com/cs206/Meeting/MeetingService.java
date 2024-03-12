@@ -139,9 +139,12 @@ public class MeetingService {
                     String startTimeString = "";
                     String endTimeString = "";
                     //need to include all day event check if its busy, if not get the date
-//                    if (event.getStatus().notEquals()){
-//
-//                    } else get timing
+                    if (event.getTransparency().compareTo("Opaque") == 0){
+//                        startTimeString = event.getStart().getDate().toString();
+//                        startTimeString = startTimeString + "T00:00:00";
+//                        endTimeString = event.getEnd().getDate().toString();
+//                        startTimeString = startTimeString + "T00:00:00";
+                    }
 
                     //timing event
                     startTimeString = event.getStart().getDateTime().toString().substring(0, 19);

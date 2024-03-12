@@ -14,10 +14,10 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public User save (User user) {
-        // TODO Auto-generated method stub
-        return userRepository.save(user);
-    }
+//    public User save (User user) {
+//        // TODO Auto-generated method stub
+//        return userRepository.save(user);
+//    }
 
     // public User getUserByUserId (String userId) {
     //     // TODO Auto-generated method stub

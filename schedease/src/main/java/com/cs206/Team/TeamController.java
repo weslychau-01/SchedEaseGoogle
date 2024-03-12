@@ -22,7 +22,6 @@ public class TeamController {
     public ResponseEntity<Team> createTeam(@PathVariable(value = "teamName") String teamName,
                                            @PathVariable(value = "teamUserId") String teamUserId
     ) {
-
         List<String> teamUserIds = new ArrayList<>();
         teamUserIds.add(teamUserId);
 

@@ -20,10 +20,10 @@ public class User {
    private String userPassword;
    private List<String> userEventIds;
    private List<String> userMeetingIds;
-   // private Credential credential;
    private String encryptedRefreshToken;
    private String encryptedAccessToken;
    private String serialisedKey;
+   // private Credential credential;
    // private String refreshToken;
    // private String accessToken;
 
