@@ -89,6 +89,8 @@ public class GoogleCalendarAPIService {
                 .build();
 
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
+        String URL = receiver.getRedirectUri();
+        System.out.println(URL);
 
         // Debug LocalServerReceiver Error400 zzz
         // System.out.println("LocalServerReceiver is configured to use port: " +

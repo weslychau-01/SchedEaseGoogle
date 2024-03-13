@@ -1,11 +1,13 @@
 package com.cs206.GoogleCalendarAPI;
 
+import java.awt.Desktop;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
+import java.net.URI;
 import java.util.*;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 
@@ -38,6 +40,8 @@ import java.security.GeneralSecurityException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.awt.Desktop;
+import java.net.URI;
 
 @RestController
 @RequestMapping("/Google") // Base path for this controller
@@ -94,16 +98,19 @@ public class GoogleCalendarAPIController {
                 .build();
 
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
+    
 
         // Debug LocalServerReceiver Error400 zzz
         // System.out.println("LocalServerReceiver is configured to use port: " +
         // receiver.getPort());
 
+
+
         Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
-        // System.out.println(credential.getRefreshToken());
-        // returns an authorized Credential object.
         return credential;
     }
+
+
 
     
     @GetMapping("/{userId}/getCredentials")
