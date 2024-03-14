@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
-import com.cs206.Event.EventRepository;
+//import com.cs206.Event.EventRepository;
 import com.cs206.Interval.*;
 import com.cs206.Team.Team;
 import com.cs206.Team.TeamRepository;
@@ -30,8 +30,8 @@ public class MeetingService {
     @Autowired
     private MeetingRepository meetingRepository;
 
-    @Autowired
-    private EventRepository eventRepository;
+//    @Autowired
+//    private EventRepository eventRepository;
 
     @Autowired
     private UserRepository userRepository;

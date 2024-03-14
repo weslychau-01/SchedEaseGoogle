@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-import com.cs206.Event.*;
+//import com.cs206.Event.*;
 import com.cs206.Interval.Interval;
 import com.cs206.Team.*;
 import com.cs206.User.*;
@@ -370,10 +370,10 @@ public class MeetingController {
     }
 
     // this method adds the vote
-    @PutMapping("/{meetingId}/{userId}/{availabilitiesVotes}/addVote")
+    @PutMapping("/{meetingId}/{userId}/addVote")
     public ResponseEntity<?> addVote(@PathVariable(value = "meetingId") String meetingId,
                                      @PathVariable(value = "userId") String userId,
-                                     @PathVariable(value = "availabilitiesVotes") Map<String, Integer> availabilitiesVotes){
+                                     @RequestBody Map<String, Integer> availabilitiesVotes){
 
         //Get meeting using MeetingId
         Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
@@ -393,11 +393,12 @@ public class MeetingController {
         //set the userVoted to true for the userId
         Map<String, Boolean> usersVoted = meeting.getHasUserVoted();
         usersVoted.put(userId, true);
+        meeting.setHasUserVoted(usersVoted);
 
         //check if everyone has voted
         boolean hasAllVoted = true;
         for (String userVoted : usersVoted.keySet()){
-            if (usersVoted.get(userVoted) == false){
+            if (!usersVoted.get(userVoted)){
                 hasAllVoted = false;
                 break;
             }
@@ -405,22 +406,32 @@ public class MeetingController {
 
         //if not all has voted then just return user voted
         if (!hasAllVoted) {
+            meetingRepository.save(meeting);
             return new ResponseEntity<String>("User Voted Successfully", HttpStatus.OK);
         }
 
         //if all has voted, then need to generate meeting timing, check for frequency and generate all meetings and
         //their status
-        String earliestDateTimeString = "";
+        System.out.println("Hello");
+        boolean firstTimePlaced = false;
+        LocalDateTime earliestStartDateTime = null;
+        LocalDateTime earliestEndDateTime = null;
         //if all has voted need
         if (hasAllVoted){
-            LocalDateTime earliestStartDateTime = null;
+            System.out.println("Entering all has voted");
+
             //find timing that is earliest & with all votes
             for (String availability : availabilitiesVotes.keySet()){
+                System.out.println("1");
                 //if votes == userCount (all can make it)
                 if (availabilitiesVotes.get(availability) == userCount){
+                    System.out.println("2");
                     // if no earliest time, set the whole timing and the start time
-                    if (earliestDateTimeString.compareTo("") == 0){
+                    if (!firstTimePlaced){
+                        System.out.println("3");
                         String[] arr = availability.split("_");
+                        System.out.println(arr[0]);
+                        System.out.println(arr[1]);
                         //set the earliest startDateTime to the earliest time
                         earliestStartDateTime = LocalDateTime.parse(arr[0], formatter);
                         //check if the earliest startDateTime is after the current time, or else need to delete from map
@@ -428,9 +439,10 @@ public class MeetingController {
                             earliestStartDateTime = null;
                             availabilitiesVotes.remove(availability);
                         } else {
-                            earliestDateTimeString = availability;
+                            earliestEndDateTime = LocalDateTime.parse(arr[1], formatter);
                             //break;
                         }
+                        firstTimePlaced = true;
                     }
 
                     //Might not need this if the map is already sorted in order (need check)
@@ -439,19 +451,17 @@ public class MeetingController {
                         LocalDateTime startTime = LocalDateTime.parse(arr[0], formatter);
                         if (startTime.isBefore(earliestStartDateTime)){
                             earliestStartDateTime = startTime;
-                            earliestDateTimeString = availability;
+                            earliestEndDateTime = LocalDateTime.parse(arr[1], formatter);;
                         }
                     }
                 }
             }
         }
 
+
         //set the values of the meeting time for the event
-        String[] arr = earliestDateTimeString.split("_");
-        LocalDateTime meetingStartTime = LocalDateTime.parse(arr[0], formatter);
-        LocalDateTime meetingEndTime = LocalDateTime.parse(arr[1], formatter);
-        meeting.setMeetingStartDateTime(meetingStartTime);
-        meeting.setMeetingEndDateTime(meetingEndTime);
+        meeting.setMeetingStartDateTime(earliestStartDateTime);
+        meeting.setMeetingEndDateTime(earliestEndDateTime);
         meeting.setIsMeetingSet(true);
 
         meetingRepository.save(meeting);
@@ -470,12 +480,12 @@ public class MeetingController {
             //save in the meetingId in the team
             teamService.saveMeetingId(meeting.getId(), team);
 
-            //save the meeting in the user class
-            userService.saveMeetingForTeamUsers(userIds, meeting.getId());
-
-            Interval meetingTiming = new Interval(meetingStartTime, meetingEndTime);
-            //update the availabilities for pending meetings of all users
-            userService.updateAvailabilitiesForAllPendingMeetings(userIds, meetingTiming);
+//            //save the meeting in the user class
+//            userService.saveMeetingForTeamUsers(userIds, meeting.getId());
+//
+//            Interval meetingTiming = new Interval(earliestStartDateTime, earliestEndDateTime);
+//            //update the availabilities for pending meetings of all users
+//            userService.updateAvailabilitiesForAllPendingMeetings(userIds, meetingTiming);
 
             return new ResponseEntity <Meeting> (meeting, HttpStatus.OK);
         }
@@ -560,7 +570,7 @@ public class MeetingController {
             //save the new meetings
             meetingRepository.save(newMeeting);
 
-            Interval newMeetingTiming = new Interval(meetingStartTime, meetingEndTime);
+            Interval newMeetingTiming = new Interval(newMeetingStartTime, newMeetingEndTime);
             //update the availabilities for pending meetings of all users
             userService.updateAvailabilitiesForAllPendingMeetings(userIds, newMeetingTiming);
 
