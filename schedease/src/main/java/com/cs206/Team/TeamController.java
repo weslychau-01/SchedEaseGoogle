@@ -17,20 +17,47 @@ public class TeamController {
     @Autowired
     private TeamRepository teamRepository;
 
-    //create new team, add first user, set allMembersAdded to false
-    @PostMapping("/{teamName}/{teamUserId}/createTeam")
-    public ResponseEntity<Team> createTeam(@PathVariable(value = "teamName") String teamName,
-                                           @PathVariable(value = "teamUserId") String teamUserId
-    ) {
-        List<String> teamUserIds = new ArrayList<>();
-        teamUserIds.add(teamUserId);
+    @Autowired
+    private UserRepository userRepository;
 
+    //create new team, add first user, set allMembersAdded to false
+    @PostMapping("/{teamName}/{teamUserEmails}/createTeam")
+    public ResponseEntity<Team> createTeam(@PathVariable(value = "teamName") String teamName,
+                                           @PathVariable(value = "teamUserId") List<String> teamUserEmails) {
+
+        //create teamUserIds and users
+        List<String> teamUserIds = new ArrayList<>();
+        List<User> users = new ArrayList<>();
+
+        //find users by email and add them to the teamUserIds
+        for (String userEmail: teamUserEmails){
+            Optional<User> optionalUser = userRepository.findByUserEmail(userEmail);
+            User user = new User();
+            if(optionalUser.isPresent()){
+                user = optionalUser.get();
+            }
+            users.add(user);
+            teamUserIds.add(user.getId());
+
+        }
+
+
+        //create team
         Team team = new Team();
         team.setTeamName(teamName);
         team.setTeamUserIds(teamUserIds);
         team.setTeamMeetingIds(new ArrayList<String>());
 
+        //save the team
         teamRepository.save(team);
+
+        //update for users their team
+        for (User user : users){
+            List<String> teamIds = user.getTeamIds();
+            teamIds.add(team.get_id());
+            user.setTeamIds(teamIds);
+            userRepository.save(user);
+        }
 
         return new ResponseEntity<Team>(team, HttpStatus.OK);
     }

@@ -1,9 +1,11 @@
 package com.cs206.User;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.cs206.GoogleCalendarAPI.GoogleCalendarAPIService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +18,11 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private GoogleCalendarAPIService googleCalendarAPIService;
 
     @GetMapping("/getUsers")
     public ResponseEntity<?> getAllUsers() {
@@ -27,6 +33,16 @@ public class UserController {
         return new ResponseEntity<List<User>>(userService.allUsers(), HttpStatus.OK);
     }
 
+    @GetMapping("/{userId}/getUser")
+    public ResponseEntity<?> getUser(@PathVariable(value = "userId") String userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()){
+            user = optionalUser.get();
+        }
+        return new ResponseEntity<User>(user, HttpStatus.OK);
+    }
+
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/addUser")
     public ResponseEntity<String> createUser(@RequestBody User user) {
@@ -35,7 +51,7 @@ public class UserController {
         // user.setUserName("John");
         // user.setUserEmail("john@gmail.com");
         // user.setUserPassword("john123");
-        user.setUserEventIds(new ArrayList<>());
+//        user.setUserEventIds(new ArrayList<>());
         user.setUserMeetingIds(new ArrayList<String>());
         userRepository.save(user);
         return new ResponseEntity<>("User Saved", HttpStatus.OK);
@@ -49,11 +65,25 @@ public class UserController {
         user.setUserName(userName);
         user.setUserEmail(userEmail);
         user.setUserPassword(userPassword);
-        user.setUserEventIds(new ArrayList<>());
         user.setUserMeetingIds(new ArrayList<>());
+        user.setTeamIds(new ArrayList<>());
+        user.setEncryptedAccessToken(null);
+        user.setEncryptedRefreshToken(null);
+        user.setSerialisedKey(null);
         userRepository.save(user);
 
         return new ResponseEntity<User>(user, HttpStatus.OK);
+    }
+
+    @PutMapping("{userId}/connectGoogleCalendar")
+    public ResponseEntity<?> googleCalendarLogin(@PathVariable(value = "userId") String userId){
+        try {
+            googleCalendarAPIService.getCredentials(userId);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return new ResponseEntity<String>("Google Calendar Connected", HttpStatus.OK);
     }
 
     @PostMapping("{userEmail}/{userPassword}/login")
@@ -65,7 +95,7 @@ public class UserController {
             user = optionalUser.get();
         }
 
-        if (user.getUserPassword().compareTo(userPassword) != 0){
+        if (user.getUserPassword().compareTo(userPassword) == 0){
             return new ResponseEntity<Boolean> (true, HttpStatus.OK);
         }
 
