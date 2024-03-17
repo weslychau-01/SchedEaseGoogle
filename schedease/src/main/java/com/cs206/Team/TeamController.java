@@ -17,25 +17,51 @@ public class TeamController {
     @Autowired
     private TeamRepository teamRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     //create new team, add first user, set allMembersAdded to false
-    @PostMapping("/{teamName}/{teamUserId}/{firstTeamDateTime}/{lastTeamDateTime}/createTeam")
+    @PostMapping("/{teamName}/createTeam")
     public ResponseEntity<Team> createTeam(@PathVariable(value = "teamName") String teamName,
-                                           @PathVariable(value = "teamUserId") String teamUserId,
-                                           @PathVariable(value = "firstTeamDateTime") LocalDateTime firstTeamDateTime,
-                                           @PathVariable(value = "lastTeamDateTime") LocalDateTime lastTeamDateTime) {
+                                           @RequestBody Set<String> teamUserEmails) {
 
-        List<String> teamUserIds = new ArrayList<>();
-        teamUserIds.add(teamUserId);
+        //create teamUserIds and users
+        Set<String> teamUserIds = new TreeSet<>();
+        Set<User> users = new HashSet<>();
 
+        //find users by email and add them to the teamUserIds
+        for (String userEmail: teamUserEmails){
+            System.out.println(userEmail);
+            Optional<User> optionalUser = userRepository.findByUserEmail(userEmail);
+            System.out.println(optionalUser);
+            User user = new User();
+            if(optionalUser.isPresent()){
+                user = optionalUser.get();
+            }
+            users.add(user);
+            teamUserIds.add(user.getId());
+
+        }
+
+
+        //create team
         Team team = new Team();
         team.setTeamName(teamName);
         team.setTeamUserIds(teamUserIds);
-        team.setTeamMeetingIds(new ArrayList<String>());
-        team.setFirstTeamDateTime(firstTeamDateTime);
-        team.setLastTeamDateTime(lastTeamDateTime);
-        team.setAllMembersAdded(false);
+        team.setTeamMeetingIds(new TreeSet<>());
 
+        //save the team
         teamRepository.save(team);
+
+        //update for users their team
+        for (User user : users){
+            System.out.println(user.getId());
+            Set<String> teamIds = user.getTeamIds();
+//            System.out.println(teamIds);
+            teamIds.add(team.get_id());
+            user.setTeamIds(teamIds);
+            userRepository.save(user);
+        }
 
         return new ResponseEntity<Team>(team, HttpStatus.OK);
     }
@@ -50,10 +76,11 @@ public class TeamController {
         }
 
         //create a new list of userIds and add the new user
-        List<String> userIds = team.getTeamUserIds();
+        Set<String> userIds = team.getTeamUserIds();
         userIds.add(userId);
 
         team.setTeamUserIds(userIds);
+        teamRepository.save(team);
 
         //need to send a notification to everyone in the team
         return new ResponseEntity<String>("User Added", HttpStatus.OK);

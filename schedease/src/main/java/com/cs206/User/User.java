@@ -18,13 +18,13 @@ public class User {
    private String userName;
    private String userEmail;
    private String userPassword;
-   private List<String> userEventIds;
-   private List<String> userMeetingIds;
-   private String expoPushToken;
-   // private Credential credential;
+//   private List<String> userEventIds;
+   private Set<String> teamIds;
+   private Set<String> userMeetingIds;
    private String encryptedRefreshToken;
    private String encryptedAccessToken;
    private String serialisedKey;
+   // private Credential credential;
    // private String refreshToken;
    // private String accessToken;
 
