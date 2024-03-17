@@ -19,8 +19,8 @@ public class User {
    private String userEmail;
    private String userPassword;
 //   private List<String> userEventIds;
-   private List<String> teamIds;
-   private List<String> userMeetingIds;
+   private Set<String> teamIds;
+   private Set<String> userMeetingIds;
    private String encryptedRefreshToken;
    private String encryptedAccessToken;
    private String serialisedKey;

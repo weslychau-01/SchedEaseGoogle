@@ -2,10 +2,7 @@ package com.cs206.User;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import com.cs206.Interval.Interval;
 import com.cs206.Meeting.Meeting;
@@ -42,7 +39,7 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public void saveMeetingForTeamUsers(List<String> userIds, String meetingId) {
+    public void saveMeetingForTeamUsers(Set<String> userIds, String meetingId) {
         //for each user for them and add the new meeting Ids and save the meeting
         for (String userId : userIds) {
             Optional<User> optionalUser = userRepository.findById(userId);
@@ -51,7 +48,7 @@ public class UserService {
                 user = optionalUser.get();
             }
 
-            List<String> userMeetingIds = user.getUserMeetingIds();
+            Set<String> userMeetingIds = user.getUserMeetingIds();
             userMeetingIds.add(meetingId);
             user.setUserMeetingIds(userMeetingIds);
             userRepository.save(user);
@@ -60,7 +57,7 @@ public class UserService {
 
     }
 
-    public void saveAllMeetingsForTeamUsers(List<String> userIds, List<String> meetingIds) {
+    public void saveAllMeetingsForTeamUsers(Set<String> userIds, List<String> meetingIds) {
         //for each user for them and add all the new meetingIds and save the meeting
         for (String userId : userIds) {
             Optional<User> optionalUser = userRepository.findById(userId);
@@ -69,7 +66,7 @@ public class UserService {
                 user = optionalUser.get();
             }
 
-            List<String> userMeetingIds = user.getUserMeetingIds();
+            Set<String> userMeetingIds = user.getUserMeetingIds();
             userMeetingIds.addAll(meetingIds);
             user.setUserMeetingIds(userMeetingIds);
             userRepository.save(user);
@@ -79,7 +76,7 @@ public class UserService {
     }
 
     //update availabilities for other meetings upon confirmation of a single meeting
-    public void updateAvailabilitiesForAllPendingMeetings(List<String> userIds, Interval meetingTiming) {
+    public void updateAvailabilitiesForAllPendingMeetings(Set<String> userIds, Interval meetingTiming) {
         for (String userId : userIds) {
             Optional<User> optionalUser = userRepository.findById(userId);
             User user = new User();
@@ -87,19 +84,25 @@ public class UserService {
                 user = optionalUser.get();
             }
 
-            List<String> meetingIds = user.getUserMeetingIds();
+            Set<String> meetingIds = user.getUserMeetingIds();
+            if (meetingIds.isEmpty()){
+                return;
+            }
+            System.out.println(meetingTiming.getStartDateTime());
             for (String meetingId : meetingIds) {
                 Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
                 Meeting meeting = new Meeting();
                 if (optionalMeeting.isPresent()) {
+                    System.out.println("Meeting present");
                     meeting = optionalMeeting.get();
                 }
 
                 if (meeting.getIsMeetingSet()) {
                     continue;
                 } else {
+                    System.out.println(meeting.getId());
                     Map<String, Integer> meetingAvailabilities = meeting.getMeetingAvailabilities();
-                    Map<String, Integer> newMeetingAvailabilities = meeting.getMeetingAvailabilities();
+                    Map<String, Integer> newMeetingAvailabilities = new TreeMap<>();
                     for (String meetingAvailability : meetingAvailabilities.keySet()) {
                         String[] array = meetingAvailability.split("_");
                         LocalDateTime availableTimingStartDateTime = LocalDateTime.parse(array[0], formatter);
@@ -109,9 +112,19 @@ public class UserService {
                                 meetingTiming.getStartDateTime().isBefore(availableTimingEndDateTime) && meetingTiming.getStartDateTime().isAfter(availableTimingStartDateTime) ||
                                 meetingTiming.getEndDateTime().isAfter(availableTimingStartDateTime) && meetingTiming.getEndDateTime().isBefore(availableTimingEndDateTime) ||
                                 meetingTiming.getEndDateTime().isEqual(availableTimingEndDateTime))) {
+
+
+                            System.out.println(availableTimingStartDateTime);
+
+
                             newMeetingAvailabilities.putIfAbsent(meetingAvailability, meetingAvailabilities.get(meetingAvailability));
                         }
                     }
+
+                    for (String meetingAvailability : newMeetingAvailabilities.keySet()){
+                        System.out.println(meetingAvailability);
+                    }
+
                     meeting.setMeetingAvailabilities(newMeetingAvailabilities);
                 }
                 meetingRepository.save(meeting);
@@ -120,7 +133,7 @@ public class UserService {
     }
 
     //update availabilities for upon confirmation of multi-frequency meetings
-    public void updateAvailabilitiesForAllPendingMeetingsWithMultipleMeetings(List<String> userIds, List<Interval> meetingTimings){
+    public void updateAvailabilitiesForAllPendingMeetingsWithMultipleMeetings(Set<String> userIds, List<Interval> meetingTimings){
         for (String userId : userIds) {
             Optional<User> optionalUser = userRepository.findById(userId);
             User user = new User();
@@ -128,7 +141,7 @@ public class UserService {
                 user = optionalUser.get();
             }
 
-            List<String> meetingIds = user.getUserMeetingIds();
+            Set<String> meetingIds = user.getUserMeetingIds();
             for (String meetingId : meetingIds) {
                 Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
                 Meeting meeting = new Meeting();

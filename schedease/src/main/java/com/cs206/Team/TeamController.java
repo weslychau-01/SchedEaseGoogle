@@ -21,17 +21,19 @@ public class TeamController {
     private UserRepository userRepository;
 
     //create new team, add first user, set allMembersAdded to false
-    @PostMapping("/{teamName}/{teamUserEmails}/createTeam")
+    @PostMapping("/{teamName}/createTeam")
     public ResponseEntity<Team> createTeam(@PathVariable(value = "teamName") String teamName,
-                                           @PathVariable(value = "teamUserId") List<String> teamUserEmails) {
+                                           @RequestBody Set<String> teamUserEmails) {
 
         //create teamUserIds and users
-        List<String> teamUserIds = new ArrayList<>();
-        List<User> users = new ArrayList<>();
+        Set<String> teamUserIds = new TreeSet<>();
+        Set<User> users = new HashSet<>();
 
         //find users by email and add them to the teamUserIds
         for (String userEmail: teamUserEmails){
+            System.out.println(userEmail);
             Optional<User> optionalUser = userRepository.findByUserEmail(userEmail);
+            System.out.println(optionalUser);
             User user = new User();
             if(optionalUser.isPresent()){
                 user = optionalUser.get();
@@ -46,14 +48,16 @@ public class TeamController {
         Team team = new Team();
         team.setTeamName(teamName);
         team.setTeamUserIds(teamUserIds);
-        team.setTeamMeetingIds(new ArrayList<String>());
+        team.setTeamMeetingIds(new TreeSet<>());
 
         //save the team
         teamRepository.save(team);
 
         //update for users their team
         for (User user : users){
-            List<String> teamIds = user.getTeamIds();
+            System.out.println(user.getId());
+            Set<String> teamIds = user.getTeamIds();
+//            System.out.println(teamIds);
             teamIds.add(team.get_id());
             user.setTeamIds(teamIds);
             userRepository.save(user);
@@ -72,7 +76,7 @@ public class TeamController {
         }
 
         //create a new list of userIds and add the new user
-        List<String> userIds = team.getTeamUserIds();
+        Set<String> userIds = team.getTeamUserIds();
         userIds.add(userId);
 
         team.setTeamUserIds(userIds);

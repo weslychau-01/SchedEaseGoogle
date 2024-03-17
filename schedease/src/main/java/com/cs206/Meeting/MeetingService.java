@@ -5,11 +5,7 @@ import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
+import java.util.*;
 
 import com.cs206.GoogleCalendarAPI.GoogleCalendarAPIService;
 import com.google.api.services.calendar.model.Event;
@@ -98,10 +94,10 @@ public class MeetingService {
 
         //first meeting timing
         Interval firstMeetingTiming = new Interval(firstMeeting.getMeetingStartDateTime(), firstMeeting.getMeetingEndDateTime());
-
+        System.out.println(firstMeetingTiming);
         //meeting Time Limit
         Interval meetingLimit = new Interval(firstMeeting.getFirstMeetingDateTime(), firstMeeting.getLastMeetingDateTime());
-
+        System.out.println(firstMeeting.getFirstMeetingDateTime());
         //start from the next possible meeting timing
         LocalDateTime nextMeetingStartDateTime = firstMeeting.getMeetingStartDateTime().plusWeeks(weekCount);
         LocalDateTime nextMeetingEndDateTime = firstMeeting.getMeetingEndDateTime().plusWeeks(weekCount);
@@ -117,6 +113,10 @@ public class MeetingService {
             nextMeetingEndDateTime = nextMeetingEndDateTime.plusWeeks(weekCount);
         }
 
+        for (String nextMeetingTimingString : nextMeetingTimings.keySet()){
+            System.out.println(nextMeetingTimingString);
+        }
+
         return nextMeetingTimings;
     }
 
@@ -125,7 +125,7 @@ public class MeetingService {
     public List<Interval> getUnavailableTimings (Team team, LocalDateTime firstDateTimeLimit, LocalDateTime lastDateTimeLimit){
 
         //get the list of usedIds from the team
-        List<String> userIds = team.getTeamUserIds();
+        Set<String> userIds = team.getTeamUserIds();
         List<Interval> unavailableTimings = new ArrayList<Interval>();
 
         String firstDateTimeLimitString = firstDateTimeLimit.toString();

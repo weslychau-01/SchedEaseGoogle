@@ -17,6 +17,6 @@ public class Team {
     @Id
     private String _id;
     private String teamName;
-    private List<String> teamUserIds;
-    private List<String> teamMeetingIds;
+    private Set<String> teamUserIds;
+    private Set<String> teamMeetingIds;
 }

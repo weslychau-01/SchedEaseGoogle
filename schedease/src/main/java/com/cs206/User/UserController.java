@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 
 import com.cs206.GoogleCalendarAPI.GoogleCalendarAPIService;
+import com.sun.source.tree.Tree;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,13 +48,12 @@ public class UserController {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/addUser")
     public ResponseEntity<String> createUser(@RequestBody User user) {
-        List<String> eventId = new ArrayList<>();
         // User user = new User();
         // user.setUserName("John");
         // user.setUserEmail("john@gmail.com");
         // user.setUserPassword("john123");
 //        user.setUserEventIds(new ArrayList<>());
-        user.setUserMeetingIds(new ArrayList<String>());
+        user.setUserMeetingIds(new TreeSet<>());
         userRepository.save(user);
         return new ResponseEntity<>("User Saved", HttpStatus.OK);
     }
@@ -65,8 +66,8 @@ public class UserController {
         user.setUserName(userName);
         user.setUserEmail(userEmail);
         user.setUserPassword(userPassword);
-        user.setUserMeetingIds(new ArrayList<>());
-        user.setTeamIds(new ArrayList<>());
+        user.setUserMeetingIds(new TreeSet<>());
+        user.setTeamIds(new TreeSet<>());
         user.setEncryptedAccessToken(null);
         user.setEncryptedRefreshToken(null);
         user.setSerialisedKey(null);
