@@ -94,10 +94,9 @@ public class MeetingService {
 
         //first meeting timing
         Interval firstMeetingTiming = new Interval(firstMeeting.getMeetingStartDateTime(), firstMeeting.getMeetingEndDateTime());
-        System.out.println(firstMeetingTiming);
+
         //meeting Time Limit
         Interval meetingLimit = new Interval(firstMeeting.getFirstMeetingDateTime(), firstMeeting.getLastMeetingDateTime());
-        System.out.println(firstMeeting.getFirstMeetingDateTime());
         //start from the next possible meeting timing
         LocalDateTime nextMeetingStartDateTime = firstMeeting.getMeetingStartDateTime().plusWeeks(weekCount);
         LocalDateTime nextMeetingEndDateTime = firstMeeting.getMeetingEndDateTime().plusWeeks(weekCount);
@@ -105,8 +104,11 @@ public class MeetingService {
         //check if the nextMeetingTiming is within the timeLimit
         while (nextMeetingEndDateTime.isBefore(meetingLimit.getEndDateTime()) ||
                 (nextMeetingEndDateTime.isEqual(meetingLimit.getEndDateTime()))){
-            Interval nextMeetingTime = new Interval(nextMeetingStartDateTime, nextMeetingEndDateTime);
-            String nextMeetingTimeString = nextMeetingTime.convertToString();
+//            Interval nextMeetingTime = new Interval(nextMeetingStartDateTime, nextMeetingEndDateTime);
+//            String nextMeetingTimeString = nextMeetingTime.convertToString();
+
+            String nextMeetingTimeString = nextMeetingStartDateTime.format(formatter) + "_" + nextMeetingEndDateTime.format(formatter);
+
             nextMeetingTimings.putIfAbsent(nextMeetingTimeString, true);
 
             nextMeetingStartDateTime = nextMeetingStartDateTime.plusWeeks(weekCount);
