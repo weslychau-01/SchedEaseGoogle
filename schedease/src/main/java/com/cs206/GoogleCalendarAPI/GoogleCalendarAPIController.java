@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.*;
-import java.util.List;
 
 import javax.crypto.SecretKey;
 
@@ -32,16 +31,19 @@ import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import com.google.api.client.extensions.jetty.auth.oauth2.*;
 import com.Encryption.*;
 
 import java.security.GeneralSecurityException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.awt.Desktop;
-import java.net.URI;
+import org.springframework.web.servlet.view.RedirectView;
 
 @RestController
 @RequestMapping("/Google") // Base path for this controller
@@ -53,7 +55,9 @@ public class GoogleCalendarAPIController {
     /**
      * Directory to store authorization tokens for this application.
      */
-    private final String TOKENS_DIRECTORY_PATH = "tokens";
+    // private final String TOKENS_DIRECTORY_PATH = "tokens";
+
+    private final String AUTH_REDIRECT_URI = "http://localhost:8080/Google/Authorised";
 
     private final String APPLICATION_NAME = "SchedEase";
 
@@ -67,13 +71,14 @@ public class GoogleCalendarAPIController {
     private final List<String> SCOPES = Collections.singletonList(CalendarScopes.CALENDAR);
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
 
-    /**
-     * Creates an authorized Credential object.
-     *
-     * @param HTTP_TRANSPORT The network HTTP Transport.
-     * @return An authorized Credential object.
-     * @throws IOException If the credentials.json is not found.
-     */
+
+ /*
+ * Creates an authorized Credential object.
+ *
+ * @param HTTP_TRANSPORT The network HTTP Transport.
+ * @return An authorized Credential object.
+ * @throws IOException If the credentials.json is not found.
+ */
     private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT)
             throws IOException {
 
@@ -92,7 +97,7 @@ public class GoogleCalendarAPIController {
         // Build flow and trigger user authorization request.
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-                .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
+                // .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
                 .setApprovalPrompt("force")
                 .setAccessType("offline")
                 .build();
@@ -104,15 +109,84 @@ public class GoogleCalendarAPIController {
         // System.out.println("LocalServerReceiver is configured to use port: " +
         // receiver.getPort());
 
-
-
         Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
         return credential;
     }
 
+    @GetMapping("/{userId}/startOAuth")
+    public RedirectView startOAuth(@PathVariable(value = "userId") String userId) throws Exception {
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+
+        // Specify the redirect URI; this should match the one configured in Google Cloud Console
+
+        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
+                .setAccessType("offline")
+                .build();
+
+        // Generate the authorization URL
+        String authUrl = flow.newAuthorizationUrl().setRedirectUri(AUTH_REDIRECT_URI).setState(userId).build();
+        
+
+        // Redirect the user to the authorization URL
+        return new RedirectView(authUrl);
+        // return new RedirectView("http://localhost:8080/Google/Authorised");
+    }
+
+    @GetMapping("/Authorised")
+    public ResponseEntity<?> oauth2callback(@RequestParam("code") String code, 
+                                        @RequestParam("state") String userId,
+                                        HttpServletRequest request) throws Exception {
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+
+        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
+                .setAccessType("offline")
+                .setAccessType("force")
+                .build();
+        // String authUrl = flow.newAuthorizationUrl().setRedirectUri(AUTH_REDIRECT_URI).build();
+
+        // Exchange the authorization code for OAuth tokens
+        GoogleTokenResponse tokenResponse = flow.newTokenRequest(code).setRedirectUri(AUTH_REDIRECT_URI).execute();
+        Credential credentials = flow.createAndStoreCredential(tokenResponse, "user");
+
+        try {
+
+            User user;
+            Optional<User> optionalUser = userRepository.findById(userId);
+            if (optionalUser.isPresent()) {
+
+                user = optionalUser.get();
+                SecretKey secretKey = EncryptionUtil.getSecretKeyFromSecretString(user.getSerialisedKey());
+                String aToken = credentials.getAccessToken();
+                String rToken = credentials.getRefreshToken();
+                user.setEncryptedAccessToken(EncryptionUtil.encrypt(aToken, secretKey));
+                user.setEncryptedRefreshToken(EncryptionUtil.encrypt(rToken, secretKey));
+                userRepository.save(user);
+            }
+
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Failed to get credentials: " + e.getMessage());
+        }
+
+        String message = "Authorization successful. Tokens securely stored.";
+        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(message);
+
+    }
 
 
-    
+/*
     @GetMapping("/{userId}/getCredentials")
     public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) throws Exception {
         try {
@@ -144,7 +218,7 @@ public class GoogleCalendarAPIController {
             return ResponseEntity.internalServerError().body("Failed to get credentials: " + e.getMessage());
         }
     }
-    
+*/
     /*
     @GetMapping("/{userId}/getCredentials")
     public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) {
@@ -314,84 +388,4 @@ public class GoogleCalendarAPIController {
             throw new UserNotFoundException(userId);
         }
     }
-    
-/*
-    @GetMapping("/{userId}/getEvents/{eventStartDateTime}/{eventEndDateTime}")
-    public ResponseEntity<List<Event>> getEvents(
-            @PathVariable(value = "userId") String userId,
-            @PathVariable(value = "eventStartDateTime") String eventStartDateTime,
-            @PathVariable(value = "eventEndDateTime") String eventEndDateTime)
-            throws IOException, GeneralSecurityException {
-
-        // Load client secrets.
-        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
-        if (in == null) {
-            // // Print the absolute path of the file being searched for
-            // System.out.println("File path: " +
-            // getClass().getResource(CREDENTIALS_FILE_PATH));
-
-            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
-        }
-
-        Credential credentials;
-
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-
-            String accessToken = user.getAccessToken();
-            String refreshToken = user.getRefreshToken();
-
-            final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-
-            credentials = createCredentialForUser(accessToken, refreshToken, HTTP_TRANSPORT);
-
-            // Build a new authorized API client service.
-            if (credentials == null) {
-                getCredentials(HTTP_TRANSPORT);
-            } else {
-                credentials.refreshToken();
-            }
-            Calendar service = new Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credentials)
-                    .setApplicationName(APPLICATION_NAME)
-                    .build();
-
-            // Format the start and end date/time to RFC3339
-            String startDateTimeStr = eventStartDateTime + 'Z';
-            String endDateTimeStr = eventEndDateTime + 'Z';
-
-            DateTime startDateTime = new DateTime(startDateTimeStr);
-            DateTime endDateTime = new DateTime(endDateTimeStr);
-
-            Events events = service.events().list("primary")
-                    .setTimeMax(endDateTime)
-                    .setTimeMin(startDateTime)
-                    .setOrderBy("startTime")
-                    .setSingleEvents(true)
-                    .execute();
-
-            List<Event> items = events.getItems();
-            if (items.isEmpty()) {
-                System.out.println("No upcoming events found.");
-                return ResponseEntity.ok().body(Collections.emptyList());
-            } else {
-                System.out.println("Upcoming events");
-                for (Event event : items) {
-                    DateTime start = event.getStart().getDateTime();
-                    DateTime end = event.getEnd().getDateTime();
-                    if (start == null) {
-                        start = event.getStart().getDate();
-                    }
-                    if (end == null) {
-                        end = event.getEnd().getDate();
-                    }
-                    System.out.printf("%s (%s) to (%s)\n", event.getSummary(), start, end);
-                }
-                return ResponseEntity.ok().body(items);
-            }
-        } else {
-            throw new UserNotFoundException(userId);
-        }
-    }
-     */
 }
