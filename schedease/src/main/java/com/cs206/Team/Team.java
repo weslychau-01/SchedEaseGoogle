@@ -17,9 +17,6 @@ public class Team {
     @Id
     private String _id;
     private String teamName;
-    private LocalDateTime firstTeamDateTime;
-    private LocalDateTime lastTeamDateTime;
-    private List<String> teamUserIds;
-    private List<String> teamMeetingIds;
-    private boolean isAllMembersAdded;
+    private Set<String> teamUserIds;
+    private Set<String> teamMeetingIds;
 }

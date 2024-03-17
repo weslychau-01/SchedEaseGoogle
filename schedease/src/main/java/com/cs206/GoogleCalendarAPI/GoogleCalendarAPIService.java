@@ -77,9 +77,9 @@ public class GoogleCalendarAPIService {
 
             throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
         }
-
+        System.out.println("1");
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-
+        System.out.println("2");
         // Build flow and trigger user authorization request.
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
@@ -87,18 +87,21 @@ public class GoogleCalendarAPIService {
                 .setApprovalPrompt("force")
                 .setAccessType("offline")
                 .build();
-
+        System.out.println("3");
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
+      
         String URL = receiver.getRedirectUri();
         System.out.println(URL);
+
 
         // Debug LocalServerReceiver Error400 zzz
         // System.out.println("LocalServerReceiver is configured to use port: " +
         // receiver.getPort());
-
+        System.out.println("5");
         Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
         // System.out.println(credential.getRefreshToken());
         // returns an authorized Credential object.
+        System.out.println("6");
         return credential;
     }
 
