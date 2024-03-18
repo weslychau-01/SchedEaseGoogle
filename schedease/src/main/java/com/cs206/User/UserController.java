@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.Encryption.*;
+
+import javax.crypto.SecretKey;
+
 import com.cs206.GoogleCalendarAPI.GoogleCalendarAPIService;
 import com.cs206.Meeting.Meeting;
 import com.cs206.Meeting.MeetingRepository;
@@ -14,6 +18,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.Encryption.EncryptionUtil;
 
 @CrossOrigin("*")
 @RestController
@@ -55,7 +68,8 @@ public class UserController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/addUser")
-    public ResponseEntity<String> createUser(@RequestBody User user) {
+    public ResponseEntity<String> createUser(@RequestBody User user) throws Exception {
+        List<String> eventId = new ArrayList<>();
         // User user = new User();
         // user.setUserName("John");
         // user.setUserEmail("john@gmail.com");
@@ -63,6 +77,11 @@ public class UserController {
 //        user.setUserEventIds(new ArrayList<>());
         user.setUserMeetingIds(new TreeSet<>());
         userRepository.save(user);
+        SecretKey secretKey = EncryptionUtil.generateSecretKey();
+        user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
+        user.setUserEventIds(eventId);
+        user.setUserMeetingIds(new ArrayList<String>());
+        userService.save(user);
         return new ResponseEntity<>("User Saved", HttpStatus.OK);
     }
 
