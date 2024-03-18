@@ -1,5 +1,7 @@
 package com.cs206.Team;
 
+import com.cs206.Meeting.Meeting;
+import com.cs206.Meeting.MeetingRepository;
 import com.cs206.Team.*;
 import com.cs206.User.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,9 @@ public class TeamController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private MeetingRepository meetingRepository;
 
     //create new team, add first user, set allMembersAdded to false
     @PostMapping("/{teamName}/createTeam")
@@ -116,4 +121,25 @@ public class TeamController {
         return new ResponseEntity<String>("Team Deleted", HttpStatus.OK);
     }
 
+    @GetMapping("/{teamId}/getAllMeetings")
+    public ResponseEntity<?> getAllMeetingsInTeam(@PathVariable(value = "teamId")String teamId){
+        Optional<Team> optionalTeam = teamRepository.findByTeamName(teamId);
+        Team team = new Team();
+        if (optionalTeam.isPresent()) {
+            team = optionalTeam.get();
+        }
+
+        Set<String> meetingIds = team.getTeamMeetingIds();
+        Set<Meeting> meetings = new HashSet<>();
+        for (String meetingId : meetingIds){
+            Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+            Meeting meeting = new Meeting();
+            if (optionalMeeting.isPresent()){
+                meeting = optionalMeeting.get();
+                meetings.add(meeting);
+            }
+        }
+
+        return new ResponseEntity<Set<Meeting>>(meetings, HttpStatus.OK);
+    }
 }

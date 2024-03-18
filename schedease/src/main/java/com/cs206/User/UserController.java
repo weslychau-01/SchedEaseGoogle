@@ -1,12 +1,14 @@
 package com.cs206.User;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.TreeSet;
+import java.time.LocalDateTime;
+import java.util.*;
 
 import com.cs206.GoogleCalendarAPI.GoogleCalendarAPIService;
+import com.cs206.Meeting.Meeting;
+import com.cs206.Meeting.MeetingRepository;
+import com.cs206.Team.Team;
+import com.cs206.Team.TeamRepository;
 import com.sun.source.tree.Tree;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,12 @@ public class UserController {
 
     @Autowired
     private GoogleCalendarAPIService googleCalendarAPIService;
+
+    @Autowired
+    private TeamRepository teamRepository;
+
+    @Autowired
+    private MeetingRepository meetingRepository;
 
     @GetMapping("/getUsers")
     public ResponseEntity<?> getAllUsers() {
@@ -94,16 +102,61 @@ public class UserController {
         User user = new User();
         if (optionalUser.isPresent()){
             user = optionalUser.get();
+        } else {
+            return new ResponseEntity<String>("Wrong Email", HttpStatus.OK);
         }
 
         if (user.getUserPassword().compareTo(userPassword) == 0){
-            return new ResponseEntity<Boolean> (true, HttpStatus.OK);
+            return new ResponseEntity<String> (user.getId(), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<String>("Wrong Password", HttpStatus.OK);
         }
-
-        return new ResponseEntity<Boolean>(false, HttpStatus.OK);
     }
 
+    @GetMapping("{userId}/getAllTeams")
+    public ResponseEntity<?> getAllTeams(@PathVariable(value = "userId") String userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()) {
+            user = optionalUser.get();
+        }
 
+        Set<Team> teams = new TreeSet<>();
+        Set<String> teamIds = user.getTeamIds();
+        for (String teamId : teamIds) {
+            Optional<Team> optionalTeam = teamRepository.findById(teamId);
+            Team team = new Team();
+            if (optionalTeam.isPresent()) {
+                team = optionalTeam.get();
+            }
+
+            teams.add(team);
+        }
+
+        return new ResponseEntity<Set<Team>>(teams, HttpStatus.OK);
+    }
+
+    @GetMapping("{userId}/getAllMeetings")
+    public ResponseEntity<?> getAllMeetings(@PathVariable(value = "userId") String userId){
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()) {
+            user = optionalUser.get();
+        }
+
+        Set<String> meetingIds = user.getUserMeetingIds();
+        Set<Meeting> meetings = new HashSet<>();
+        for (String meetingId : meetingIds){
+            Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+            Meeting meeting = new Meeting();
+            if (optionalMeeting.isPresent()){
+                meeting = optionalMeeting.get();
+                meetings.add(meeting);
+            }
+        }
+
+        return new ResponseEntity<Set<Meeting>>(meetings, HttpStatus.OK);
+    }
 }
 
 

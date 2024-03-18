@@ -233,6 +233,8 @@ public class MeetingController {
 
         //save the meeting then get the id
         meetingRepository.save(meeting);
+        teamService.saveMeetingId(meeting.getId(), team);
+        userService.saveMeetingForTeamUsers(team.getTeamUserIds(), meeting.getId());
 
         //return the meeting details
         return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
