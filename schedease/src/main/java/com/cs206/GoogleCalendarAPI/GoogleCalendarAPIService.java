@@ -26,11 +26,13 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.EventDateTime;
 import com.google.api.services.calendar.model.Events;
 import com.google.api.client.extensions.jetty.auth.oauth2.*;
 import com.Encryption.*;
 
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -382,5 +384,63 @@ public class GoogleCalendarAPIService {
             }
         }
         return;
+    }
+
+    public void addEvent(String userId, String eventName, LocalDateTime eventStartDateTime, LocalDateTime eventEndDateTime) 
+                        throws IOException, GeneralSecurityException, Exception {
+
+        // Load client secrets.
+        InputStream in = GoogleCalendarAPIService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            // // Print the absolute path of the file being searched for
+            // System.out.println("File path: " +
+            // getClass().getResource(CREDENTIALS_FILE_PATH));
+
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+
+        Credential credentials;
+
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+
+            SecretKey k = EncryptionUtil.getSecretKeyFromSecretString(user.getSerialisedKey());
+        
+            String accessToken = EncryptionUtil.decrypt(user.getEncryptedAccessToken(), k);
+            String refreshToken = EncryptionUtil.decrypt(user.getEncryptedRefreshToken(), k);
+
+            final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+
+            credentials = createCredentialForUser(accessToken, refreshToken, HTTP_TRANSPORT);
+
+            // Build a new authorized API client service.
+            if (credentials == null) {
+                getCredentials(HTTP_TRANSPORT);
+            } else {
+                credentials.refreshToken();
+            }
+            Calendar service = new Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credentials)
+                    .setApplicationName(APPLICATION_NAME)
+                    .build();
+            Event event = new Event()
+                .setSummary(eventName);
+            
+            DateTime startDateTime = new DateTime(eventStartDateTime.toString() + ":00.00Z");
+            EventDateTime start = new EventDateTime()
+                .setDateTime(startDateTime)
+                .setTimeZone("Asia/Singapore");
+            event.setStart(start);
+
+            DateTime endDateTime = new DateTime(eventEndDateTime.toString() + ":00.00Z");
+            EventDateTime end = new EventDateTime()
+                .setDateTime(endDateTime)
+                .setTimeZone("Asia/Singapore");
+            event.setEnd(end);
+            
+            String calendarId = "primary";
+            event = service.events().insert(calendarId, event).execute();
+            service.events().insert(calendarId, event).execute();
+        }
     }
 }

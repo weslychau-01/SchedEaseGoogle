@@ -1,5 +1,7 @@
 package com.cs206.Meeting;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -9,12 +11,17 @@ import java.util.*;
 import com.cs206.Interval.Interval;
 import com.cs206.Team.*;
 import com.cs206.User.*;
+import com.google.api.services.calendar.model.Event;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.swing.text.html.Option;
+
+import com.cs206.GoogleCalendarAPI.*;
+
 
 // import com.example.SchedEase.Event.EventService;
 // import com.example.SchedEase.User.UserService;
@@ -38,8 +45,22 @@ public class MeetingController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private GoogleCalendarAPIService googleCalendarAPIService;
+
 //    @Autowired
 //    private EventRepository eventRepository;
+
+    @GetMapping("/{userId}/{meetingId}/addEventToGoogleCalendar")
+    public void getMethodName(@PathVariable(value = "userId") String userId, @PathVariable(value = "meetingId") String meetingId) throws IOException, GeneralSecurityException, Exception {
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        if (optionalMeeting.isPresent()) {
+            Meeting meeting = optionalMeeting.get();
+            googleCalendarAPIService.addEvent(userId, meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+        }
+        
+    }
+    
 
     @GetMapping("/getAllMeetings")
     public ResponseEntity<List<Meeting>> getAllEvents(){
