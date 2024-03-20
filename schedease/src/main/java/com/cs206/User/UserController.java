@@ -58,24 +58,24 @@ public class UserController {
         return new ResponseEntity<User>(user, HttpStatus.OK);
     }
 
-    @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping("/addUser")
-    public ResponseEntity<String> createUser(@RequestBody User user) throws Exception {
-        List<String> eventId = new ArrayList<>();
-        // User user = new User();
-        // user.setUserName("John");
-        // user.setUserEmail("john@gmail.com");
-        // user.setUserPassword("john123");
-//        user.setUserEventIds(new ArrayList<>());
-        user.setUserMeetingIds(new TreeSet<>());
-        userRepository.save(user);
-        SecretKey secretKey = EncryptionUtil.generateSecretKey();
-        user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
-        user.setUserEventIds(eventId);
-        user.setUserMeetingIds(new ArrayList<String>());
-        userService.save(user);
-        return new ResponseEntity<>("User Saved", HttpStatus.OK);
-    }
+//     @ResponseStatus(HttpStatus.CREATED)
+//     @PostMapping("/addUser")
+//     public ResponseEntity<String> createUser(@RequestBody User user) throws Exception {
+//         List<String> eventId = new ArrayList<>();
+//         // User user = new User();
+//         // user.setUserName("John");
+//         // user.setUserEmail("john@gmail.com");
+//         // user.setUserPassword("john123");
+// //        user.setUserEventIds(new ArrayList<>());
+//         user.setUserMeetingIds(new TreeSet<>());
+//         userRepository.save(user);
+//         SecretKey secretKey = EncryptionUtil.generateSecretKey();
+//         user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
+//         user.setUserEventIds(eventId);
+//         user.setUserMeetingIds(new ArrayList<String>());
+//         userService.save(user);
+//         return new ResponseEntity<>("User Saved", HttpStatus.OK);
+//     }
 
     @PostMapping("/{userName}/{userEmail}/{userPassword}/signUp")
     public ResponseEntity<?> signUp(@PathVariable(value = "userName") String userName, @PathVariable(value = "userEmail")String userEmail,
