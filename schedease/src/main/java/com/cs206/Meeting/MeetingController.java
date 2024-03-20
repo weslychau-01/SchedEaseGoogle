@@ -30,8 +30,8 @@ public class MeetingController {
     private MeetingRepository meetingRepository;
     @Autowired
     private TeamRepository teamRepository;
-    // @Autowired
-    // private TeamService teamService;
+     @Autowired
+     private TeamService teamService;
     @Autowired
     private UserRepository userRepository;
 

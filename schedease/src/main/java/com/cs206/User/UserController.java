@@ -74,9 +74,9 @@ public class UserController {
         userRepository.save(user);
         SecretKey secretKey = EncryptionUtil.generateSecretKey();
         user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
-        user.setUserEventIds(eventId);
-        user.setUserMeetingIds(new ArrayList<String>());
-        userService.save(user);
+//        user.setUserEventIds(eventId);
+        user.setUserMeetingIds(new HashSet<>());
+        userRepository.save(user);
         return new ResponseEntity<>("User Saved", HttpStatus.OK);
     }
 
