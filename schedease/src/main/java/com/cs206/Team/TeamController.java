@@ -39,14 +39,16 @@ public class TeamController {
             System.out.println(userEmail);
             Optional<User> optionalUser = userRepository.findByUserEmail(userEmail);
             System.out.println(optionalUser);
+
             User user = new User();
             if(optionalUser.isPresent()){
                 user = optionalUser.get();
+                users.add(user);
+                teamUserIds.add(user.getId());
             }
-            users.add(user);
-            teamUserIds.add(user.getId());
-
         }
+
+        System.out.println(users);
 
 
         //create team

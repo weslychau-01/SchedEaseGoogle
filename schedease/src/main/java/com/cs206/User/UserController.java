@@ -13,6 +13,7 @@ import com.cs206.Meeting.Meeting;
 import com.cs206.Meeting.MeetingRepository;
 import com.cs206.Team.Team;
 import com.cs206.Team.TeamRepository;
+import com.google.api.services.calendar.model.Event;
 import com.sun.source.tree.Tree;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -79,9 +80,8 @@ public class UserController {
         userRepository.save(user);
         SecretKey secretKey = EncryptionUtil.generateSecretKey();
         user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
-        user.setUserEventIds(eventId);
-        user.setUserMeetingIds(new ArrayList<String>());
-        userService.save(user);
+        user.setUserMeetingIds(new HashSet<>());
+        userRepository.save(user);
         return new ResponseEntity<>("User Saved", HttpStatus.OK);
     }
 
@@ -105,13 +105,21 @@ public class UserController {
 
     @PutMapping("{userId}/connectGoogleCalendar")
     public ResponseEntity<?> googleCalendarLogin(@PathVariable(value = "userId") String userId){
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()){
+            user = optionalUser.get();
+        } else {
+            return new ResponseEntity<String>("Wrong Email", HttpStatus.OK);
+        }
+
         try {
             googleCalendarAPIService.getCredentials(userId);
         } catch (Exception e){
             e.printStackTrace();
         }
 
-        return new ResponseEntity<String>("Google Calendar Connected", HttpStatus.OK);
+        return new ResponseEntity<User>(user, HttpStatus.OK);
     }
 
     @PostMapping("{userEmail}/{userPassword}/login")
@@ -175,6 +183,20 @@ public class UserController {
         }
 
         return new ResponseEntity<Set<Meeting>>(meetings, HttpStatus.OK);
+    }
+
+    @GetMapping("{userId}/{eventStartTime}/{eventEndTime}/getEvents")
+    public ResponseEntity<?> getEvents(@PathVariable(value = "userId") String userId,
+                                       @PathVariable(value = "eventStartTime") String eventStartTime,
+                                       @PathVariable(value = "eventEndTime") String eventEndTime) {
+        List<Event> events = null;
+        try {
+            events = googleCalendarAPIService.getEvents(userId, eventStartTime, eventEndTime);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new ResponseEntity<List<Event>>(events, HttpStatus.OK);
     }
 }
 
