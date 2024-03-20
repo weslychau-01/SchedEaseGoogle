@@ -79,7 +79,7 @@ public class UserController {
 
     @PostMapping("/{userName}/{userEmail}/{userPassword}/signUp")
     public ResponseEntity<?> signUp(@PathVariable(value = "userName") String userName, @PathVariable(value = "userEmail")String userEmail,
-                                    @PathVariable(value = "userPassword") String userPassword){
+                                    @PathVariable(value = "userPassword") String userPassword) throws Exception{
         User user = new User();
 
         user.setUserName(userName);
@@ -89,7 +89,8 @@ public class UserController {
         user.setTeamIds(new TreeSet<>());
         user.setEncryptedAccessToken(null);
         user.setEncryptedRefreshToken(null);
-        user.setSerialisedKey(null);
+        SecretKey secretKey = EncryptionUtil.generateSecretKey();
+        user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
         userRepository.save(user);
 
         return new ResponseEntity<User>(user, HttpStatus.OK);
