@@ -113,7 +113,7 @@ public class GoogleCalendarAPIController {
         return credential;
     }
 
-    @GetMapping("/{userId}/startOAuth")
+    /*@GetMapping("/{userId}/startOAuth")
     public RedirectView startOAuth(@PathVariable(value = "userId") String userId) throws Exception {
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
         InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
@@ -135,6 +135,31 @@ public class GoogleCalendarAPIController {
 
         // Redirect the user to the authorization URL
         return new RedirectView(authUrl);
+        // return new RedirectView("http://localhost:8080/Google/Authorised");
+    }*/
+
+    @GetMapping("/{userId}/startOAuth")
+    public String startOAuth(@PathVariable(value = "userId") String userId) throws Exception {
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        InputStream in = GoogleCalendarAPIController.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+
+        // Specify the redirect URI; this should match the one configured in Google Cloud Console
+
+        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
+                .setAccessType("offline")
+                .build();
+
+        // Generate the authorization URL
+        String authUrl = flow.newAuthorizationUrl().setRedirectUri(AUTH_REDIRECT_URI).setState(userId).build();
+        
+
+        // Redirect the user to the authorization URL
+        return authUrl;
         // return new RedirectView("http://localhost:8080/Google/Authorised");
     }
 
