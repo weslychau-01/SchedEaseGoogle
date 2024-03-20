@@ -15,6 +15,7 @@ import com.google.api.services.calendar.model.Event;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,14 +52,23 @@ public class MeetingController {
 //    @Autowired
 //    private EventRepository eventRepository;
 
-    @GetMapping("/{userId}/{meetingId}/addEventToGoogleCalendar")
-    public void getMethodName(@PathVariable(value = "userId") String userId, @PathVariable(value = "meetingId") String meetingId) throws IOException, GeneralSecurityException, Exception {
+    @PostMapping("/{meetingId}/addEventToGoogleCalendar")
+    public ResponseEntity<?> addEventsToGoogleCalendar(@PathVariable(value = "meetingId") String meetingId) throws IOException, GeneralSecurityException, Exception {
+        Event eventToAdd;
         Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
         if (optionalMeeting.isPresent()) {
             Meeting meeting = optionalMeeting.get();
-            googleCalendarAPIService.addEvent(userId, meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
-        }
-        
+            Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+            if (optionalTeam.isPresent()) {
+                Team team = optionalTeam.get();
+                String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                for (String userId : userIds) {
+                    eventToAdd = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                    googleCalendarAPIService.addEvent(userId, eventToAdd);
+                }
+            } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
     
 
@@ -184,7 +194,7 @@ public class MeetingController {
 
 
     //create a new meeting, generate meeting Id
-    @PostMapping("/{teamId}/{meetingName}/{firstDateTimeLimit}/{lastDateTimeLimit}/{DurationInSeconds}/createMeeting")
+    @PostMapping("/{teamId}/{meetingName}/{firstDateTimeLimit}/{lastDateTimeLimit}/{DurationInSeconds}/{frequency}/createMeeting")
     public ResponseEntity<?> createMeeting(@PathVariable(value = "teamId") String teamId,
                                            @PathVariable(value = "meetingName") String meetingName,
                                            @PathVariable(value = "firstDateTimeLimit") LocalDateTime firstDateTimeLimit,
