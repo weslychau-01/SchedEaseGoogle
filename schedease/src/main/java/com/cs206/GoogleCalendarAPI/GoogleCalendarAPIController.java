@@ -163,7 +163,7 @@ public class GoogleCalendarAPIController {
         // return new RedirectView("http://localhost:8080/Google/Authorised");
     }
 
-    @GetMapping("/Authorised")
+    // @GetMapping("/Authorised")
     public ResponseEntity<?> oauth2callback(@RequestParam("code") String code, 
                                         @RequestParam("state") String userId,
                                         HttpServletRequest request) throws Exception {
@@ -244,20 +244,27 @@ public class GoogleCalendarAPIController {
         }
     }
 */
-    /*
-    @GetMapping("/{userId}/getCredentials")
-    public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) {
+    
+    // @GetMapping("/{userId}/getCredentials")
+    @GetMapping("/{userId}/Authorised")
+    public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) throws Exception {
         try {
             final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
             Credential credentials = getCredentials(HTTP_TRANSPORT);
 
+            User user;
+            SecretKey secretKey = EncryptionUtil.generateSecretKey();
+            
             Optional<User> optionalUser = userRepository.findById(userId);
             if (optionalUser.isPresent()) {
-                User user = optionalUser.get();
+
+                user = optionalUser.get();
                 // user.setCredential(credentials);
-                user.setAccessToken(credentials.getAccessToken());
-                System.out.println(credentials.getRefreshToken());
-                user.setRefreshToken(credentials.getRefreshToken());
+                user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
+                String aToken = credentials.getAccessToken();
+                String rToken = credentials.getRefreshToken();
+                user.setEncryptedAccessToken(EncryptionUtil.encrypt(aToken, secretKey));
+                user.setEncryptedRefreshToken(EncryptionUtil.encrypt(rToken, secretKey));
                 userRepository.save(user);
             }
 
@@ -268,7 +275,7 @@ public class GoogleCalendarAPIController {
             return ResponseEntity.internalServerError().body("Failed to get credentials: " + e.getMessage());
         }
     }
-    */
+    
 
     @GetMapping("/getAllEvents")
     public ResponseEntity<?> test() throws IOException, GeneralSecurityException {
