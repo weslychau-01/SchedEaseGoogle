@@ -10,7 +10,6 @@ import com.cs206.Meeting.MeetingRepository;
 import com.cs206.Meeting.MeetingService;
 import com.cs206.Team.Team;
 import com.cs206.Team.TeamRepository;
-import com.cs206.Team.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,8 +29,8 @@ public class UserService {
     @Autowired
     private TeamRepository teamRepository;
 
-    @Autowired
-    private TeamService teamService;
+    // @Autowired
+    // private TeamService teamService;
 
 
 

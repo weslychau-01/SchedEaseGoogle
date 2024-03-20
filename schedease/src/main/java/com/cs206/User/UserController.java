@@ -42,12 +42,6 @@ public class UserController {
     @Autowired
     private GoogleCalendarAPIService googleCalendarAPIService;
 
-    @Autowired
-    private TeamRepository teamRepository;
-
-    @Autowired
-    private MeetingRepository meetingRepository;
-
     @GetMapping("/getUsers")
     public ResponseEntity<?> getAllUsers() {
         List<User> allUsers = userService.allUsers();
@@ -80,8 +74,9 @@ public class UserController {
         userRepository.save(user);
         SecretKey secretKey = EncryptionUtil.generateSecretKey();
         user.setSerialisedKey(EncryptionUtil.serialiseSecretString(secretKey));
-        user.setUserMeetingIds(new HashSet<>());
-        userRepository.save(user);
+        user.setUserEventIds(eventId);
+        user.setUserMeetingIds(new ArrayList<String>());
+        userService.save(user);
         return new ResponseEntity<>("User Saved", HttpStatus.OK);
     }
 
@@ -106,21 +101,13 @@ public class UserController {
 
     @PutMapping("{userId}/connectGoogleCalendar")
     public ResponseEntity<?> googleCalendarLogin(@PathVariable(value = "userId") String userId){
-        Optional<User> optionalUser = userRepository.findById(userId);
-        User user = new User();
-        if (optionalUser.isPresent()){
-            user = optionalUser.get();
-        } else {
-            return new ResponseEntity<String>("Wrong Email", HttpStatus.OK);
-        }
-
         try {
             googleCalendarAPIService.getCredentials(userId);
         } catch (Exception e){
             e.printStackTrace();
         }
 
-        return new ResponseEntity<User>(user, HttpStatus.OK);
+        return new ResponseEntity<String>("Google Calendar Connected", HttpStatus.OK);
     }
 
     @PostMapping("{userEmail}/{userPassword}/login")
@@ -130,75 +117,16 @@ public class UserController {
         User user = new User();
         if (optionalUser.isPresent()){
             user = optionalUser.get();
-        } else {
-            return new ResponseEntity<String>("Wrong Email", HttpStatus.OK);
         }
 
         if (user.getUserPassword().compareTo(userPassword) == 0){
-            return new ResponseEntity<String> (user.getId(), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<String>("Wrong Password", HttpStatus.OK);
+            return new ResponseEntity<Boolean> (true, HttpStatus.OK);
         }
+
+        return new ResponseEntity<Boolean>(false, HttpStatus.OK);
     }
 
-    @GetMapping("{userId}/getAllTeams")
-    public ResponseEntity<?> getAllTeams(@PathVariable(value = "userId") String userId) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-        User user = new User();
-        if (optionalUser.isPresent()) {
-            user = optionalUser.get();
-        }
 
-        Set<Team> teams = new TreeSet<>();
-        Set<String> teamIds = user.getTeamIds();
-        for (String teamId : teamIds) {
-            Optional<Team> optionalTeam = teamRepository.findById(teamId);
-            Team team = new Team();
-            if (optionalTeam.isPresent()) {
-                team = optionalTeam.get();
-            }
-
-            teams.add(team);
-        }
-
-        return new ResponseEntity<Set<Team>>(teams, HttpStatus.OK);
-    }
-
-    @GetMapping("{userId}/getAllMeetings")
-    public ResponseEntity<?> getAllMeetings(@PathVariable(value = "userId") String userId){
-        Optional<User> optionalUser = userRepository.findById(userId);
-        User user = new User();
-        if (optionalUser.isPresent()) {
-            user = optionalUser.get();
-        }
-
-        Set<String> meetingIds = user.getUserMeetingIds();
-        Set<Meeting> meetings = new HashSet<>();
-        for (String meetingId : meetingIds){
-            Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
-            Meeting meeting = new Meeting();
-            if (optionalMeeting.isPresent()){
-                meeting = optionalMeeting.get();
-                meetings.add(meeting);
-            }
-        }
-
-        return new ResponseEntity<Set<Meeting>>(meetings, HttpStatus.OK);
-    }
-
-    @GetMapping("{userId}/{eventStartTime}/{eventEndTime}/getEvents")
-    public ResponseEntity<?> getEvents(@PathVariable(value = "userId") String userId,
-                                       @PathVariable(value = "eventStartTime") String eventStartTime,
-                                       @PathVariable(value = "eventEndTime") String eventEndTime) {
-        List<Event> events = null;
-        try {
-            events = googleCalendarAPIService.getEvents(userId, eventStartTime, eventEndTime);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return new ResponseEntity<List<Event>>(events, HttpStatus.OK);
-    }
 }
 
 

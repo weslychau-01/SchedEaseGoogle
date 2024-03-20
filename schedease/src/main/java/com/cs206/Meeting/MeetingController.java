@@ -30,8 +30,8 @@ public class MeetingController {
     private MeetingRepository meetingRepository;
     @Autowired
     private TeamRepository teamRepository;
-    @Autowired
-    private TeamService teamService;
+    // @Autowired
+    // private TeamService teamService;
     @Autowired
     private UserRepository userRepository;
 
@@ -93,7 +93,7 @@ public class MeetingController {
         }
 
         meetingRepository.save(meeting);
-        teamService.saveMeetingId(meeting.getId(), team);
+        // teamService.saveMeetingId(meeting.getId(), team);
         userService.saveMeetingForTeamUsers(team.getTeamUserIds(), meeting.getId());
         return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
     }
@@ -486,7 +486,7 @@ public class MeetingController {
         if (meeting.getMeetingFrequency().compareTo("Once") == 0){
 //            System.out.println("7");
             //save in the meetingId in the team
-            teamService.saveMeetingId(meeting.getId(), team);
+            // teamService.saveMeetingId(meeting.getId(), team);
 //            System.out.println("8");
             //save the meeting in the user class
             userService.saveMeetingForTeamUsers(userIds, meeting.getId());
@@ -591,7 +591,7 @@ public class MeetingController {
         }
 
         //save all meetingIds in team and in user
-        teamService.saveAllMeetingId(allMeetingIds, team);
+        // teamService.saveAllMeetingId(allMeetingIds, team);
         userService.saveAllMeetingsForTeamUsers(userIds, allMeetingIds);
         //returns the all the meetings
         return new ResponseEntity <Map<Meeting, Boolean>> (meetings, HttpStatus.OK); //need send notification
