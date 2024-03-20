@@ -163,7 +163,7 @@ public class GoogleCalendarAPIController {
         // return new RedirectView("http://localhost:8080/Google/Authorised");
     }
 
-    // @GetMapping("/Authorised")
+    @GetMapping("/Authorised")
     public ResponseEntity<?> oauth2callback(@RequestParam("code") String code, 
                                         @RequestParam("state") String userId,
                                         HttpServletRequest request) throws Exception {
@@ -245,8 +245,8 @@ public class GoogleCalendarAPIController {
     }
 */
     
-    // @GetMapping("/{userId}/getCredentials")
-    @GetMapping("/{userId}/Authorised")
+    @GetMapping("/{userId}/getCredentials")
+    // @GetMapping("/{userId}/Authorised")
     public ResponseEntity<?> getCredentials(@PathVariable(value = "userId") String userId) throws Exception {
         try {
             final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
