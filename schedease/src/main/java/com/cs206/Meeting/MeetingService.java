@@ -1,6 +1,7 @@
 package com.cs206.Meeting;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -15,6 +16,9 @@ import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 
 //import com.cs206.Event.EventRepository;
 import com.cs206.Interval.*;
@@ -40,6 +44,43 @@ public class MeetingService {
 
     @Autowired
     private GoogleCalendarAPIService googleCalendarAPIService;
+
+    public Event addEventsToGoogleCalendar(String meetingId) throws IOException, GeneralSecurityException, Exception {
+        Event eventToAdd;
+        Event addedEvent = new Event();
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        if (optionalMeeting.isPresent()) {
+            Meeting meeting = optionalMeeting.get();
+            Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+            if (optionalTeam.isPresent()) {
+                Team team = optionalTeam.get();
+                String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                for (String userId : userIds) {
+                    eventToAdd = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                    addedEvent = googleCalendarAPIService.addEvent(userId, eventToAdd);
+                }
+            } else {return null;}
+        } else {return null;}
+        return addedEvent;
+    }
+
+    public void deleteEventsFromGoogleCalendar (String meetingId) throws IOException, GeneralSecurityException, Exception {
+        Event eventToDelete;
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        if (optionalMeeting.isPresent()) {
+            Meeting meeting = optionalMeeting.get();
+            Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+            if (optionalTeam.isPresent()) {
+                Team team = optionalTeam.get();
+                String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                for (String userId : userIds) {
+                    eventToDelete = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                    googleCalendarAPIService.deleteEvent(userId, eventToDelete);
+                }
+            } 
+        } 
+        return;
+    }
 
     public List<Meeting> allEvents() {
         // TODO Auto-generated method stub

@@ -99,6 +99,7 @@ public class UserController {
         return new ResponseEntity<User>(user, HttpStatus.OK);
     }
 
+
 //    @PutMapping("{userId}/connectGoogleCalendar")
 //    public ResponseEntity<?> googleCalendarLogin(@PathVariable(value = "userId") String userId){
 //        try {
@@ -109,6 +110,18 @@ public class UserController {
 //
 //        return new ResponseEntity<String>("Google Calendar Connected", HttpStatus.OK);
 //    }
+
+    // @PutMapping("{userId}/connectGoogleCalendar")
+    // public ResponseEntity<?> googleCalendarLogin(@PathVariable(value = "userId") String userId){
+    //     try {
+    //         googleCalendarAPIService.getCredentials(userId);
+    //     } catch (Exception e){
+    //         e.printStackTrace();
+    //     }
+
+    //     return new ResponseEntity<String>("Google Calendar Connected", HttpStatus.OK);
+    // }
+
 
     @PostMapping("{userEmail}/{userPassword}/login")
     public ResponseEntity<?> login(@PathVariable(value = "userEmail")String userEmail,

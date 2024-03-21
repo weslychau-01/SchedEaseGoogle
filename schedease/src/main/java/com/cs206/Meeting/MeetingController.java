@@ -70,6 +70,25 @@ public class MeetingController {
         } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
+
+    @DeleteMapping("/{meetingId}/deleteEventsFromGoogleCalendar")
+    public ResponseEntity<?> deleteEventsFromGoogleCalendar(@PathVariable(value = "meetingId") String meetingId) throws IOException, GeneralSecurityException, Exception {
+        Event eventToDelete;
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        if (optionalMeeting.isPresent()) {
+            Meeting meeting = optionalMeeting.get();
+            Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+            if (optionalTeam.isPresent()) {
+                Team team = optionalTeam.get();
+                String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                for (String userId : userIds) {
+                    eventToDelete = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                    googleCalendarAPIService.deleteEvent(userId, eventToDelete);
+                }
+            } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
     
 
     @GetMapping("/getAllMeetings")
@@ -297,14 +316,22 @@ public class MeetingController {
                                                @PathVariable(value = "firstDateTimeLimit") LocalDateTime firstDateTimeLimit,
                                                @PathVariable(value = "lastDateTimeLimit") LocalDateTime lastDateTimeLimit,
                                                @PathVariable(value = "frequency") String frequency,
-                                               @PathVariable(value = "durationInSeconds") long durationInSeconds){
+                                               @PathVariable(value = "durationInSeconds") long durationInSeconds) {
 
         //find the meeting that needs to be rescheduled
         Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
         Meeting rescheduledMeeting = new Meeting();
-        if (optionalMeeting.isPresent()){
+        if (optionalMeeting.isPresent()) {
             rescheduledMeeting = optionalMeeting.get();
         }
+
+        try{
+            meetingService.deleteEventsFromGoogleCalendar(meetingId);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+        meetingRepository.delete(rescheduledMeeting);
 
         //create new interval timeLimit, put firstDateTime, LastDateTime into it (this would be TimeLimit)
         Interval timeLimit = new Interval(firstDateTimeLimit, lastDateTimeLimit);
@@ -313,7 +340,7 @@ public class MeetingController {
 //        using the teamId find team
         Optional<Team> optionalTeam = teamRepository.findById(teamId);
         Team team = new Team();
-        if (optionalTeam.isPresent()){
+        if (optionalTeam.isPresent()) {
             team = optionalTeam.get();
         }
 
@@ -330,7 +357,7 @@ public class MeetingController {
         List<Interval> availableTimings = meetingService.findCommonAvailableTimes(timeLimit, unavailableTimings, durationInSeconds);
 
         Map<String, Integer> meetingAvailabilities = new TreeMap<>();
-        for (Interval interval : availableTimings){
+        for (Interval interval : availableTimings) {
             String intervalTime = "" + interval.getStartDateTime().format(formatter) + "_" + interval.getEndDateTime().format(formatter);
             meetingAvailabilities.putIfAbsent(intervalTime, 0);
         }
@@ -361,7 +388,7 @@ public class MeetingController {
 
         //set hasUserVoted with the userId and false
         Map<String, Boolean> hasUserVoted = new HashMap<>();
-        for (String userId : userIds){
+        for (String userId : userIds) {
             hasUserVoted.putIfAbsent(userId, false);
         }
         meeting.setHasUserVoted(hasUserVoted);
@@ -373,6 +400,7 @@ public class MeetingController {
 
         //return the meeting details
         return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
+    }
 
 //        //get the meetingTeam
 //        Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
@@ -477,10 +505,9 @@ public class MeetingController {
 //
 //
 //            return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
-        }
+
         //Need to think of how to reschedule, what timeline to give (if frequency 1 or if anything else)
 
-    }
 
     // this method adds the vote
     @PutMapping("/{meetingId}/{userId}/addVote")

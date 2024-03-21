@@ -59,21 +59,22 @@ public class GoogleCalendarAPIService {
             throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
         }
         System.out.println("1");
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(), new InputStreamReader(in));
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(),
+                new InputStreamReader(in));
         System.out.println("2");
         // Build flow and trigger user authorization request.
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, GsonFactory.getDefaultInstance(), clientSecrets, Collections.singletonList(CalendarScopes.CALENDAR))
+                HTTP_TRANSPORT, GsonFactory.getDefaultInstance(), clientSecrets,
+                Collections.singletonList(CalendarScopes.CALENDAR))
                 .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
                 .setApprovalPrompt("force")
                 .setAccessType("offline")
                 .build();
         System.out.println("3");
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-      
+
         String URL = receiver.getRedirectUri();
         System.out.println(URL);
-
 
         // Debug LocalServerReceiver Error400 zzz
         // System.out.println("LocalServerReceiver is configured to use port: " +
@@ -93,7 +94,8 @@ public class GoogleCalendarAPIService {
         if (in == null) {
             throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
         }
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(), new InputStreamReader(in));
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(),
+                new InputStreamReader(in));
 
         // Create the credential
         Credential credential = new Credential.Builder(BearerToken.authorizationHeaderAccessMethod())
@@ -131,7 +133,7 @@ public class GoogleCalendarAPIService {
             User user = optionalUser.get();
 
             SecretKey k = EncryptionUtil.getSecretKeyFromSecretString(user.getSerialisedKey());
-        
+
             String accessToken = EncryptionUtil.decrypt(user.getEncryptedAccessToken(), k);
             String refreshToken = EncryptionUtil.decrypt(user.getEncryptedRefreshToken(), k);
 
@@ -190,8 +192,8 @@ public class GoogleCalendarAPIService {
         }
     }
 
-    public Event addEvent(String userId, Event event) 
-                        throws IOException, GeneralSecurityException, Exception {
+    public Event addEvent(String userId, Event event)
+            throws IOException, GeneralSecurityException, Exception {
 
         // Load client secrets.
         InputStream in = GoogleCalendarAPIService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
@@ -220,7 +222,7 @@ public class GoogleCalendarAPIService {
             Calendar service = new Calendar.Builder(httpTransport, GsonFactory.getDefaultInstance(), credentials)
                     .setApplicationName(APPLICATION_NAME)
                     .build();
-            
+
             String calendarId = "primary";
             return service.events().insert(calendarId, event).execute();
         }
@@ -229,21 +231,75 @@ public class GoogleCalendarAPIService {
 
     public Event buildEvent(String eventName, LocalDateTime eventStartDateTime, LocalDateTime eventEndDateTime) {
         Event event = new Event()
-        .setSummary(eventName);
+                .setSummary(eventName);
 
-        System.out.println(eventStartDateTime.toString());
-        System.out.println(eventEndDateTime.toString());
         DateTime startDateTime = new DateTime(eventStartDateTime.toString() + ":00.00+08:00");
         EventDateTime start = new EventDateTime()
-            .setDateTime(startDateTime)
-            .setTimeZone("Asia/Singapore");
+                .setDateTime(startDateTime)
+                .setTimeZone("Asia/Singapore");
         event.setStart(start);
 
         DateTime endDateTime = new DateTime(eventEndDateTime.toString() + ":00.00+08:00");
         EventDateTime end = new EventDateTime()
-            .setDateTime(endDateTime)
-            .setTimeZone("Asia/Singapore");
+                .setDateTime(endDateTime)
+                .setTimeZone("Asia/Singapore");
         event.setEnd(end);
         return event;
     }
+
+    public void deleteEvent(String userId, Event event)
+            throws IOException, GeneralSecurityException, Exception {
+
+        // Load client secrets.
+        InputStream in = GoogleCalendarAPIService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+
+        Credential credentials;
+
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isPresent() && optionalUser.get().getSerialisedKey() != null) {
+            User user = optionalUser.get();
+            SecretKey k = EncryptionUtil.getSecretKeyFromSecretString(user.getSerialisedKey());
+            String accessToken = EncryptionUtil.decrypt(user.getEncryptedAccessToken(), k);
+            String refreshToken = EncryptionUtil.decrypt(user.getEncryptedRefreshToken(), k);
+            NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+
+            credentials = createCredentialForUser(accessToken, refreshToken, httpTransport);
+
+            // Build a new authorized API client service.
+            if (credentials == null) {
+                getCredentials(httpTransport);
+            } else {
+                credentials.refreshToken();
+            }
+            Calendar service = new Calendar.Builder(httpTransport, GsonFactory.getDefaultInstance(), credentials)
+                    .setApplicationName(APPLICATION_NAME)
+                    .build();
+
+            String calendarId = "primary";
+            String eventName = event.getSummary();
+            System.out.println(eventName);
+            List<Event> items = service.events()
+                    .list(calendarId)
+                    .setTimeMin(event.getStart().getDateTime())
+                    .setMaxResults(100)
+                    .execute()
+                    .getItems();
+            if (items.isEmpty()) {
+                return;
+            } else {
+                for (Event item : items) {
+                    System.out.println(item.getSummary());
+                    if (item.getSummary().equals(eventName)) {
+                        service.events().delete(calendarId, item.getId()).execute();
+                        return;
+                    }
+                }
+            }
+
+        }
+    }
+
 }
