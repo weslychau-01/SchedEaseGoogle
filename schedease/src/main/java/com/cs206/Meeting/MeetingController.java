@@ -1,5 +1,7 @@
 package com.cs206.Meeting;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -9,12 +11,18 @@ import java.util.*;
 import com.cs206.Interval.Interval;
 import com.cs206.Team.*;
 import com.cs206.User.*;
+import com.google.api.services.calendar.model.Event;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.swing.text.html.Option;
+
+import com.cs206.GoogleCalendarAPI.*;
+
 
 // import com.example.SchedEase.Event.EventService;
 // import com.example.SchedEase.User.UserService;
@@ -38,8 +46,31 @@ public class MeetingController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private GoogleCalendarAPIService googleCalendarAPIService;
+
 //    @Autowired
 //    private EventRepository eventRepository;
+
+    @PostMapping("/{meetingId}/addEventToGoogleCalendar")
+    public ResponseEntity<?> addEventsToGoogleCalendar(@PathVariable(value = "meetingId") String meetingId) throws IOException, GeneralSecurityException, Exception {
+        Event eventToAdd;
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        if (optionalMeeting.isPresent()) {
+            Meeting meeting = optionalMeeting.get();
+            Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+            if (optionalTeam.isPresent()) {
+                Team team = optionalTeam.get();
+                String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                for (String userId : userIds) {
+                    eventToAdd = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                    googleCalendarAPIService.addEvent(userId, eventToAdd);
+                }
+            } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+    
 
     @GetMapping("/getAllMeetings")
     public ResponseEntity<List<Meeting>> getAllEvents(){
@@ -163,7 +194,7 @@ public class MeetingController {
 
 
     //create a new meeting, generate meeting Id
-    @PostMapping("/{teamId}/{meetingName}/{firstDateTimeLimit}/{lastDateTimeLimit}/{DurationInSeconds}/createMeeting")
+    @PostMapping("/{teamId}/{meetingName}/{firstDateTimeLimit}/{lastDateTimeLimit}/{DurationInSeconds}/{frequency}/createMeeting")
     public ResponseEntity<?> createMeeting(@PathVariable(value = "teamId") String teamId,
                                            @PathVariable(value = "meetingName") String meetingName,
                                            @PathVariable(value = "firstDateTimeLimit") LocalDateTime firstDateTimeLimit,
