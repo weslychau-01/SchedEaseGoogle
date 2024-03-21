@@ -103,9 +103,13 @@ public class UserService {
                     Map<String, Integer> meetingAvailabilities = meeting.getMeetingAvailabilities();
                     Map<String, Integer> newMeetingAvailabilities = new TreeMap<>();
                     for (String meetingAvailability : meetingAvailabilities.keySet()) {
+                        System.out.println(meetingAvailability);
                         String[] array = meetingAvailability.split("_");
-                        LocalDateTime availableTimingStartDateTime = LocalDateTime.parse(array[0], formatter);
-                        LocalDateTime availableTimingEndDateTime = LocalDateTime.parse(array[1], formatter);
+                        System.out.println(array[0]);
+                        System.out.println(array[1]);
+                        LocalDateTime availableTimingStartDateTime = LocalDateTime.parse(array[0]);
+                        LocalDateTime availableTimingEndDateTime = LocalDateTime.parse(array[1]);
+                        System.out.println(availableTimingStartDateTime);
 
                         if (!(meetingTiming.getStartDateTime().isEqual(availableTimingStartDateTime) ||
                                 meetingTiming.getStartDateTime().isBefore(availableTimingEndDateTime) && meetingTiming.getStartDateTime().isAfter(availableTimingStartDateTime) ||

@@ -194,14 +194,13 @@ public class MeetingController {
 
 
     //create a new meeting, generate meeting Id
-    @PostMapping("/{teamId}/{meetingName}/{firstDateTimeLimit}/{lastDateTimeLimit}/{DurationInSeconds}/{frequency}/createMeeting")
+    @PostMapping("/{teamId}/{meetingName}/{firstDateTimeLimit}/{lastDateTimeLimit}/{durationInSeconds}/{frequency}/createMeeting")
     public ResponseEntity<?> createMeeting(@PathVariable(value = "teamId") String teamId,
                                            @PathVariable(value = "meetingName") String meetingName,
                                            @PathVariable(value = "firstDateTimeLimit") LocalDateTime firstDateTimeLimit,
                                            @PathVariable(value = "lastDateTimeLimit") LocalDateTime lastDateTimeLimit,
-                                           @PathVariable(value = "durationInSeconds") long durationInSeconds,
-                                           @PathVariable(value = "frequency") String frequency){
-
+                                           @PathVariable(value = "frequency") String frequency,
+                                           @PathVariable(value = "durationInSeconds") long durationInSeconds){
 
         //create new interval timeLimit, put firstDateTime, LastDateTime into it (this would be TimeLimit)
         Interval timeLimit = new Interval(firstDateTimeLimit, lastDateTimeLimit);
@@ -213,7 +212,6 @@ public class MeetingController {
         if (optionalTeam.isPresent()){
             team = optionalTeam.get();
         }
-
 
         //get the list of usedIds from the team
         Set<String> userIds = team.getTeamUserIds();
@@ -228,7 +226,8 @@ public class MeetingController {
 
         Map<String, Integer> meetingAvailabilities = new TreeMap<>();
         for (Interval interval : availableTimings){
-            meetingAvailabilities.putIfAbsent(interval.convertToString(), 0);
+            String intervalTime = "" + interval.getStartDateTime().format(formatter) + "_" + interval.getEndDateTime().format(formatter);
+            meetingAvailabilities.putIfAbsent(intervalTime, 0);
         }
 
         Meeting meeting = new Meeting();
@@ -466,6 +465,7 @@ public class MeetingController {
                         System.out.println(arr[1]);
                         //set the earliest startDateTime to the earliest time
                         earliestStartDateTime = LocalDateTime.parse(arr[0], formatter);
+                        earliestStartDateTime.format(formatter);
                         System.out.println(earliestStartDateTime);
                         //check if the earliest startDateTime is after the current time, or else need to delete from map
                         if (earliestStartDateTime.isBefore(LocalDateTime.now())){
@@ -473,6 +473,7 @@ public class MeetingController {
                             continue;
                         } else {
                             earliestEndDateTime = LocalDateTime.parse(arr[1], formatter);
+                            earliestEndDateTime.format(formatter);
                             //break;
                         }
                         firstTimePlaced = true;
@@ -484,7 +485,9 @@ public class MeetingController {
                         LocalDateTime startTime = LocalDateTime.parse(arr[0], formatter);
                         if (startTime.isBefore(earliestStartDateTime)){
                             earliestStartDateTime = startTime;
+                            earliestStartDateTime.format(formatter);
                             earliestEndDateTime = LocalDateTime.parse(arr[1], formatter);
+                            earliestEndDateTime.format(formatter);
                         }
                     }
                 }
@@ -617,6 +620,7 @@ public class MeetingController {
             Interval newMeetingTiming = new Interval(newMeetingStartTime, newMeetingEndTime);
             //update the availabilities for pending meetings of all users
             userService.updateAvailabilitiesForAllPendingMeetings(userIds, newMeetingTiming);
+            meetingService.addEventToUserCalendar(newMeeting.getId());
 
             allMeetingIds.add(newMeeting.getId());
         }
@@ -643,6 +647,26 @@ public class MeetingController {
         LocalDateTime newMeetingEndTime = LocalDateTime.parse(array[1], formatter);
         Interval meetingTiming = new Interval(newMeetingStartTime, newMeetingStartTime);
         userService.updateAvailabilitiesForAllPendingMeetings(userIds, meetingTiming);
+        return new ResponseEntity<String>("Done", HttpStatus.OK);
+    }
+
+    @GetMapping("{teamId}/{start}/{end}/getUnavilabilities")
+    public ResponseEntity<?> getUnavailabilities (@PathVariable(value = "teamId") String teamId,
+                                                  @PathVariable(value = "start") LocalDateTime start,
+                                                  @PathVariable(value = "end") LocalDateTime end){
+        Optional<Team> optionalTeam = teamRepository.findById(teamId);
+        Team team = new Team();
+        if (optionalTeam.isPresent()){
+            team = optionalTeam.get();
+        }
+
+        List<Interval> intervals = meetingService.getUnavailableTimings(team, start, end);
+        return new ResponseEntity<List<Interval>>(intervals, HttpStatus.OK);
+    }
+
+    @PostMapping("{meetingId}/addEventToCalendar")
+    public ResponseEntity<?> addEventToCalendar (@PathVariable (value = "meetingId") String meetingId){
+        meetingService.addEventToUserCalendar(meetingId);
         return new ResponseEntity<String>("Done", HttpStatus.OK);
     }
 }

@@ -11,6 +11,8 @@ import com.cs206.GoogleCalendarAPI.GoogleCalendarAPIService;
 import com.google.api.services.calendar.model.Event;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.core.Local;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 //import com.cs206.Event.EventRepository;
@@ -58,6 +60,8 @@ public class MeetingService {
             // check if the available time is more than the meetingDuration, if
             long durationInSeconds = Duration.between(start, freeEnd).getSeconds();
             if (durationInSeconds >= meetingSeconds) {
+                start.format(formatter);
+                freeEnd.format(formatter);
                 availableTimes.add(new Interval(start, freeEnd));
             }
             start = interval.getEndDateTime();
@@ -66,8 +70,12 @@ public class MeetingService {
         //add the last available timing if there is, between the last unavailable endTime and the end of meeting parameters
         long durationInSeconds = Duration.between(start, timeFrame.getEndDateTime()).getSeconds();
         if (durationInSeconds >= meetingSeconds) {
-            availableTimes.add(new Interval(start, timeFrame.getEndDateTime()));
+            start.format(formatter);
+            LocalDateTime endTime = timeFrame.getEndDateTime();
+            endTime.format(formatter);
+            availableTimes.add(new Interval(start, endTime));
         }
+
 
 
         //create slots list for potential meeting timings
@@ -79,6 +87,7 @@ public class MeetingService {
         for (Interval interval : availableTimes){
             LocalDateTime slotStart = interval.getStartDateTime();
             LocalDateTime slotEnd = slotStart.plusSeconds(meetingSeconds);
+
             while (slotEnd.isBefore(interval.getEndDateTime()) || slotEnd.equals(interval.getEndDateTime())) {
                 slots.add(new Interval(slotStart, slotEnd));
                 slotStart = slotStart.plusMinutes(30);
@@ -130,8 +139,8 @@ public class MeetingService {
         Set<String> userIds = team.getTeamUserIds();
         List<Interval> unavailableTimings = new ArrayList<Interval>();
 
-        String firstDateTimeLimitString = firstDateTimeLimit.toString();
-        String lastDateTimeLimitString = lastDateTimeLimit.toString();
+        String firstDateTimeLimitString = firstDateTimeLimit.format(formatter);
+        String lastDateTimeLimitString = lastDateTimeLimit.format(formatter);
 
         for (String userId : userIds){
             try {
@@ -141,12 +150,15 @@ public class MeetingService {
                     String startTimeString = "";
                     String endTimeString = "";
                     //need to include all day event check if its busy, if not get the date
-                    if (event.getTransparency().compareTo("Opaque") == 0){
-//                        startTimeString = event.getStart().getDate().toString();
-//                        startTimeString = startTimeString + "T00:00:00";
-//                        endTimeString = event.getEnd().getDate().toString();
-//                        startTimeString = startTimeString + "T00:00:00";
-                    }
+//                    if (event.getTransparency().compareTo("Opaque") == 0){
+////                        startTimeString = event.getStart().getDate().toString();
+////                        startTimeString = startTimeString + "T00:00:00";
+////                        endTimeString = event.getEnd().getDate().toString();
+////                        startTimeString = startTimeString + "T00:00:00";
+//                    }
+
+                    System.out.println(event.getStart());
+                    System.out.println(event.getEnd());
 
                     //timing event
                     startTimeString = event.getStart().getDateTime().toString().substring(0, 19);
@@ -154,69 +166,59 @@ public class MeetingService {
 
                     Interval interval = new Interval(LocalDateTime.parse(startTimeString, formatter), LocalDateTime.parse(endTimeString, formatter));
                     unavailableTimings.add(interval);
+                    System.out.println(interval);
                 }
             } catch (Exception e){
                 e.printStackTrace();
             }
         }
         return unavailableTimings;
-
-        //get a list of userIds from the team
-//        List<User> users = new ArrayList<>();
-//        for (String userId : userIds){
-//            User user = new User();
-//            Optional<User> optionalUser = userRepository.findById(userId);
-//            if (optionalUser.isPresent()){
-//                user = optionalUser.get();
-//                //add users to users list
-//                users.add(user);
-//            }
-//        }
-
-        //get eventIds from the users, for each eventId, get the event, check the time within meeting date, add it to list
-//        List<Interval> unavailableTimings = new ArrayList<Interval>();
-//        List<String> eventIds = new ArrayList<>();
-//        for (User user : users){
-//
-//            //from CALENDAR
-//            //get the credentials, run the service giving the first date time and last date time and getting back
-//            //the timing
-//
-//
-//            //seperate method
-//            //List<Event> events = user.getUserEvents();
-////            for (Event event : events){
-////                LocalDateTime eventStartDate = event.getEventStartDateTime();
-////                LocalDateTime eventEndDate = event.getEventEndDateTime();
-////
-////                //check the eventStartDate & eventEndDate is within the meeting dates
-////                if ((eventStartDate.isAfter(firstDateTimeLimit) || eventStartDate.isEqual(firstDateTimeLimit))
-////                        && (eventStartDate.isBefore(lastDateTimeLimit) || eventStartDate.isEqual(lastDateTimeLimit))){
-////                    unavailableTimings.add(new Interval(event.getEventStartDateTime(), event.getEventEndDateTime()));
-////                }
-////            }
-//
-//            List<String> userEventIds = user.getUserEventIds();
-//            //for each user, get the list of userEventIds
-//            for (String userEventId : userEventIds){
-//                Event event = new Event();
-//                Optional<Event> optionalEvent = eventRepository.findById(userEventId);
-//                //get the event
-//                if (optionalEvent.isPresent()){
-//                    event = optionalEvent.get();
-//                    //get the startDate and endDate for the event
-//                    LocalDateTime eventStartDate = event.getEventStartDateTime();
-//                    LocalDateTime eventEndDate = event.getEventEndDateTime();
-//
-//                    //check the eventStartDate & eventEndDate is within the meeting dates
-//                    if ((eventStartDate.isAfter(firstDateTimeLimit) || eventStartDate.isEqual(firstDateTimeLimit))
-//                            && (eventStartDate.isBefore(lastDateTimeLimit) || eventStartDate.isEqual(lastDateTimeLimit))){
-//                        unavailableTimings.add(new Interval(event.getEventStartDateTime(), event.getEventEndDateTime()));
-//                    }
-//                }
-//            }
-//        }
-
-
     }
+
+    public void addEventsToUserCalendarFromList(List<String> meetingIds){
+        for (String meetingId : meetingIds){
+            Event eventToAdd;
+            Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+            if (optionalMeeting.isPresent()) {
+                Meeting meeting = optionalMeeting.get();
+                Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+                if (optionalTeam.isPresent()) {
+                    Team team = optionalTeam.get();
+                    String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                    for (String userId : userIds) {
+                        eventToAdd = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                        try {
+                            googleCalendarAPIService.addEvent(userId, eventToAdd);
+                        } catch (Exception e){
+                            e.printStackTrace();
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+    public void addEventToUserCalendar(String meetingId){
+        Event eventToAdd;
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        if (optionalMeeting.isPresent()) {
+            Meeting meeting = optionalMeeting.get();
+            Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+            if (optionalTeam.isPresent()) {
+                Team team = optionalTeam.get();
+                String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                for (String userId : userIds) {
+                    eventToAdd = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                    try {
+                        googleCalendarAPIService.addEvent(userId, eventToAdd);
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }
+    }
+
 }

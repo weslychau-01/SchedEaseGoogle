@@ -99,16 +99,16 @@ public class UserController {
         return new ResponseEntity<User>(user, HttpStatus.OK);
     }
 
-    @PutMapping("{userId}/connectGoogleCalendar")
-    public ResponseEntity<?> googleCalendarLogin(@PathVariable(value = "userId") String userId){
-        try {
-            googleCalendarAPIService.getCredentials(userId);
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-
-        return new ResponseEntity<String>("Google Calendar Connected", HttpStatus.OK);
-    }
+//    @PutMapping("{userId}/connectGoogleCalendar")
+//    public ResponseEntity<?> googleCalendarLogin(@PathVariable(value = "userId") String userId){
+//        try {
+//            googleCalendarAPIService.getCredentials(userId);
+//        } catch (Exception e){
+//            e.printStackTrace();
+//        }
+//
+//        return new ResponseEntity<String>("Google Calendar Connected", HttpStatus.OK);
+//    }
 
     @PostMapping("{userEmail}/{userPassword}/login")
     public ResponseEntity<?> login(@PathVariable(value = "userEmail")String userEmail,
@@ -124,6 +124,19 @@ public class UserController {
         }
 
         return new ResponseEntity<Boolean>(false, HttpStatus.OK);
+    }
+
+    @GetMapping("{userId}/{eventStartDateTime}/{eventEndDateTime}/getEvents")
+    public ResponseEntity<?> getEventsWithinRange (@PathVariable(value = "userId") String userId,
+                                                   @PathVariable(value = "eventStartDateTime") String eventStartDateTime,
+                                                   @PathVariable(value = "eventEndDateTime") String eventEndDateTime){
+        try{
+            List<Event> events = googleCalendarAPIService.getEvents(userId, eventStartDateTime, eventEndDateTime);
+            return new ResponseEntity<List<Event>>(events, HttpStatus.OK);
+        } catch ( Exception e){
+            e.printStackTrace();
+        }
+        return new ResponseEntity<String>("Failed", HttpStatus.OK);
     }
 
 
