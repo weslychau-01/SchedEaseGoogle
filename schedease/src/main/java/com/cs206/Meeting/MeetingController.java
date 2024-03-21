@@ -263,9 +263,9 @@ public class MeetingController {
         meeting.setHasUserVoted(hasUserVoted);
 
         //save the meeting then get the id
-//        meetingRepository.save(meeting);
-//        teamService.saveMeetingId(meeting.getId(), team);
-//        userService.saveMeetingForTeamUsers(team.getTeamUserIds(), meeting.getId());
+        meetingRepository.save(meeting);
+        teamService.saveMeetingId(meeting.getId(), team);
+        userService.saveMeetingForTeamUsers(team.getTeamUserIds(), meeting.getId());
 
         //return the meeting details
         return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
@@ -289,118 +289,194 @@ public class MeetingController {
         return new ResponseEntity<Map<String, Integer>>(availabilities, HttpStatus.OK);
     }
 
-    @PutMapping("{meetingId}/rescheduleMeeting")
-    public ResponseEntity<?> rescheduleMeeting(@PathVariable(value = "meetingId") String meetingId){
+    //Only upon pressing the rescheduleMeeting button
+    @PostMapping("{meetingId}/{teamId}/{meetingName}/{firstDateTimeLimit}/{lastDateTimeLimit}/{durationInSeconds}/{frequency}/rescheduleMeeting")
+    public ResponseEntity<?> rescheduleMeeting(@PathVariable(value = "meetingId") String meetingId,
+                                               @PathVariable(value = "teamId") String teamId,
+                                               @PathVariable(value = "meetingName") String meetingName,
+                                               @PathVariable(value = "firstDateTimeLimit") LocalDateTime firstDateTimeLimit,
+                                               @PathVariable(value = "lastDateTimeLimit") LocalDateTime lastDateTimeLimit,
+                                               @PathVariable(value = "frequency") String frequency,
+                                               @PathVariable(value = "durationInSeconds") long durationInSeconds){
 
         //find the meeting that needs to be rescheduled
         Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
-        Meeting meeting = new Meeting();
+        Meeting rescheduledMeeting = new Meeting();
         if (optionalMeeting.isPresent()){
-            meeting = optionalMeeting.get();
+            rescheduledMeeting = optionalMeeting.get();
         }
 
-        //get the meetingTeam
-        Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+        //create new interval timeLimit, put firstDateTime, LastDateTime into it (this would be TimeLimit)
+        Interval timeLimit = new Interval(firstDateTimeLimit, lastDateTimeLimit);
+
+
+//        using the teamId find team
+        Optional<Team> optionalTeam = teamRepository.findById(teamId);
         Team team = new Team();
         if (optionalTeam.isPresent()){
             team = optionalTeam.get();
         }
 
-        //if frequency is only once
-        if (meeting.getMeetingFrequency().compareTo("Once") == 0){
+        //get the list of usedIds from the team
+        Set<String> userIds = team.getTeamUserIds();
 
-            //set the firstMeetingDateTime and lastMeetingDateTime to the supposed timings, must check if its before time now or after
-            LocalDateTime firstMeetingDateTime = null;
-            LocalDateTime lastMeetingDateTime = meeting.getLastMeetingDateTime();
-            if (LocalDateTime.now().isAfter(meeting.getFirstMeetingDateTime())){
-                firstMeetingDateTime = LocalDateTime.now();
-            } else {
-                firstMeetingDateTime = meeting.getFirstMeetingDateTime();
-            }
+        //get the unavailable timings for the users
+        List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstDateTimeLimit, lastDateTimeLimit);
+        //sort the timings based on startDateTime
+        unavailableTimings.sort(Comparator.comparing(interval -> interval.getStartDateTime()));
 
-            //create a new map
-            Interval timeLimit = new Interval(firstMeetingDateTime, lastMeetingDateTime);
-            List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstMeetingDateTime, lastMeetingDateTime);
-            unavailableTimings.sort(Comparator.comparing(interval -> interval.getStartDateTime()));
+        System.out.println("Entering common availablities");
+        //get possible meeting timings based on timeLimit, the list of unavailable timings and meeting duration
+        List<Interval> availableTimings = meetingService.findCommonAvailableTimes(timeLimit, unavailableTimings, durationInSeconds);
 
-            //get possible meeting timings based on timeLimit, the list of unavailable timings and meeting duration
-            List<Interval> availableTimings = meetingService.findCommonAvailableTimes(timeLimit, unavailableTimings, meeting.getMeetingDurationInSeconds());
-
-            //put the possible timings
-            Map<String, Integer> meetingAvailabilities = new TreeMap<>();
-            for (Interval interval : availableTimings){
-                meetingAvailabilities.putIfAbsent(interval.convertToString(), 0);
-            }
-
-            meeting.setMeetingAvailabilities(meetingAvailabilities);
-            meetingRepository.save(meeting);
-            return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
+        Map<String, Integer> meetingAvailabilities = new TreeMap<>();
+        for (Interval interval : availableTimings){
+            String intervalTime = "" + interval.getStartDateTime().format(formatter) + "_" + interval.getEndDateTime().format(formatter);
+            meetingAvailabilities.putIfAbsent(intervalTime, 0);
         }
 
-        else {
-            //set the local firstMeetingDateTime to be within 3 days before the original meeting date / actual firstMeetingDateTime
-            //or the localDateTimeNow
-            LocalDateTime firstMeetingDateTime = meeting.getMeetingStartDateTime().minusDays(3);
-            if (firstMeetingDateTime.isBefore(LocalDateTime.now())){
-                firstMeetingDateTime = LocalDateTime.now();
-            } if (firstMeetingDateTime.isBefore(meeting.getFirstMeetingDateTime())){
-                firstMeetingDateTime = meeting.getFirstMeetingDateTime();
-            }
+        Meeting meeting = new Meeting();
 
-            //set the lastMeetingDateTime to be within 3 days after the original meeting date / actual lastMeetingDateTime
-            LocalDateTime lastMeetingDateTime = meeting.getMeetingEndDateTime().plusDays(3);
-            if (lastMeetingDateTime.isAfter(meeting.getLastMeetingDateTime())){
-                lastMeetingDateTime = meeting.getLastMeetingDateTime();
-            }
+        //set meetingTeamId to teamId, and meetingName, and usersCount
+        meeting.setMeetingTeamId(teamId);
+        meeting.setMeetingName(meetingName);
+        meeting.setUserCount(userIds.size());
+        meeting.setHasNoConflicts(true);
+        meeting.setIsMeetingSet(false);
 
-            //find the unavailableTimings of the users
-            Interval timeLimit = new Interval(firstMeetingDateTime, lastMeetingDateTime);
-            List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstMeetingDateTime, lastMeetingDateTime);
-            unavailableTimings.sort(Comparator.comparing(interval -> interval.getStartDateTime()));
+        //set FirstMeetingDateTime and LastMeetingDateTime
+        meeting.setFirstMeetingDateTime(firstDateTimeLimit);
+        meeting.setLastMeetingDateTime(lastDateTimeLimit);
 
-            //get possible meeting timings based on timeLimit, the list of unavailable timings and meeting duration
-            List<Interval> availableTimings = meetingService.findCommonAvailableTimes(timeLimit, unavailableTimings, meeting.getMeetingDurationInSeconds());
+        //set meetingFrequency and Duration
+        meeting.setMeetingFrequency(frequency);
+        meeting.setMeetingDurationInSeconds(durationInSeconds);
 
-            //put the possible timings
-            Map<String, Integer> meetingAvailabilities = new TreeMap<>();
-            for (Interval interval : availableTimings){
-                meetingAvailabilities.putIfAbsent(interval.convertToString(), 0);
-            }
+        //set Meeting time to null
+        meeting.setMeetingStartDateTime(null);
+        meeting.setMeetingEndDateTime(null);
 
+        //set meetingAvailabilities to a map with available timings with zero votes
+        meeting.setMeetingAvailabilities(meetingAvailabilities);
 
-            //reset the meeting details and set the new details (override the current meeting)
-            meeting.setMeetingTeamId(meeting.getMeetingTeamId());
-            meeting.setMeetingName(meeting.getMeetingName());
-            meeting.setUserCount(meeting.getUserCount());
-            meeting.setHasNoConflicts(true);
-            meeting.setIsMeetingSet(false);
+        //set hasUserVoted with the userId and false
+        Map<String, Boolean> hasUserVoted = new HashMap<>();
+        for (String userId : userIds){
+            hasUserVoted.putIfAbsent(userId, false);
+        }
+        meeting.setHasUserVoted(hasUserVoted);
 
-            //set FirstMeetingDateTime and LastMeetingDateTime
-            meeting.setFirstMeetingDateTime(meeting.getFirstMeetingDateTime());
-            meeting.setLastMeetingDateTime(meeting.getLastMeetingDateTime());
+        //save the meeting then get the id
+        meetingRepository.save(meeting);
+        teamService.saveMeetingId(meeting.getId(), team);
+        userService.saveMeetingForTeamUsers(team.getTeamUserIds(), meeting.getId());
 
-            //set meetingFrequency and Duration
-            meeting.setMeetingFrequency(meeting.getMeetingFrequency());
-            meeting.setMeetingDurationInSeconds(meeting.getMeetingDurationInSeconds());
+        //return the meeting details
+        return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
 
-            //set Meeting time
-            meeting.setMeetingStartDateTime(null);
-            meeting.setMeetingEndDateTime(null);
-
-            meeting.setMeetingAvailabilities(meetingAvailabilities);
-
-
-            Map<String, Boolean> hasUserVoted = new HashMap<>();
-            for (String userId : meeting.getHasUserVoted().keySet()){
-                hasUserVoted.putIfAbsent(userId, false);
-            }
-            meeting.setHasUserVoted(hasUserVoted);
-
-            //save the meeting
-            meetingRepository.save(meeting);
-
-
-            return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
+//        //get the meetingTeam
+//        Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+//        Team team = new Team();
+//        if (optionalTeam.isPresent()){
+//            team = optionalTeam.get();
+//        }
+//
+//        //if frequency is only once
+//        if (meeting.getMeetingFrequency().compareTo("Once") == 0){
+//
+//            //set the firstMeetingDateTime and lastMeetingDateTime to the supposed timings, must check if its before time now or after
+//            LocalDateTime firstMeetingDateTime = null;
+//            LocalDateTime lastMeetingDateTime = meeting.getLastMeetingDateTime();
+//            if (LocalDateTime.now().isAfter(meeting.getFirstMeetingDateTime())){
+//                firstMeetingDateTime = LocalDateTime.now();
+//            } else {
+//                firstMeetingDateTime = meeting.getFirstMeetingDateTime();
+//            }
+//
+//            //create a new map
+//            Interval timeLimit = new Interval(firstMeetingDateTime, lastMeetingDateTime);
+//            List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstMeetingDateTime, lastMeetingDateTime);
+//            unavailableTimings.sort(Comparator.comparing(interval -> interval.getStartDateTime()));
+//
+//            //get possible meeting timings based on timeLimit, the list of unavailable timings and meeting duration
+//            List<Interval> availableTimings = meetingService.findCommonAvailableTimes(timeLimit, unavailableTimings, meeting.getMeetingDurationInSeconds());
+//
+//            //put the possible timings
+//            Map<String, Integer> meetingAvailabilities = new TreeMap<>();
+//            for (Interval interval : availableTimings){
+//                meetingAvailabilities.putIfAbsent(interval.convertToString(), 0);
+//            }
+//
+//
+//
+//            meetingRepository.save(meeting);
+//            return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
+//        }
+//
+//        else {
+//            //set the local firstMeetingDateTime to be within 3 days before the original meeting date / actual firstMeetingDateTime
+//            //or the localDateTimeNow
+//            LocalDateTime firstMeetingDateTime = meeting.getMeetingStartDateTime().minusDays(3);
+//            if (firstMeetingDateTime.isBefore(LocalDateTime.now())){
+//                firstMeetingDateTime = LocalDateTime.now();
+//            } if (firstMeetingDateTime.isBefore(meeting.getFirstMeetingDateTime())){
+//                firstMeetingDateTime = meeting.getFirstMeetingDateTime();
+//            }
+//
+//            //set the lastMeetingDateTime to be within 3 days after the original meeting date / actual lastMeetingDateTime
+//            LocalDateTime lastMeetingDateTime = meeting.getMeetingEndDateTime().plusDays(3);
+//            if (lastMeetingDateTime.isAfter(meeting.getLastMeetingDateTime())){
+//                lastMeetingDateTime = meeting.getLastMeetingDateTime();
+//            }
+//
+//            //find the unavailableTimings of the users
+//            Interval timeLimit = new Interval(firstMeetingDateTime, lastMeetingDateTime);
+//            List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstMeetingDateTime, lastMeetingDateTime);
+//            unavailableTimings.sort(Comparator.comparing(interval -> interval.getStartDateTime()));
+//
+//            //get possible meeting timings based on timeLimit, the list of unavailable timings and meeting duration
+//            List<Interval> availableTimings = meetingService.findCommonAvailableTimes(timeLimit, unavailableTimings, meeting.getMeetingDurationInSeconds());
+//
+//            //put the possible timings
+//            Map<String, Integer> meetingAvailabilities = new TreeMap<>();
+//            for (Interval interval : availableTimings){
+//                meetingAvailabilities.putIfAbsent(interval.convertToString(), 0);
+//            }
+//
+//
+//            //reset the meeting details and set the new details (override the current meeting)
+//            meeting.setMeetingTeamId(meeting.getMeetingTeamId());
+//            meeting.setMeetingName(meeting.getMeetingName());
+//            meeting.setUserCount(meeting.getUserCount());
+//            meeting.setHasNoConflicts(true);
+//            meeting.setIsMeetingSet(false);
+//
+//            //set FirstMeetingDateTime and LastMeetingDateTime
+//            meeting.setFirstMeetingDateTime(meeting.getFirstMeetingDateTime());
+//            meeting.setLastMeetingDateTime(meeting.getLastMeetingDateTime());
+//
+//            //set meetingFrequency and Duration
+//            meeting.setMeetingFrequency(meeting.getMeetingFrequency());
+//            meeting.setMeetingDurationInSeconds(meeting.getMeetingDurationInSeconds());
+//
+//            //set Meeting time
+//            meeting.setMeetingStartDateTime(null);
+//            meeting.setMeetingEndDateTime(null);
+//
+//            meeting.setMeetingAvailabilities(meetingAvailabilities);
+//
+//
+//            Map<String, Boolean> hasUserVoted = new HashMap<>();
+//            for (String userId : meeting.getHasUserVoted().keySet()){
+//                hasUserVoted.putIfAbsent(userId, false);
+//            }
+//            meeting.setHasUserVoted(hasUserVoted);
+//
+//            //save the meeting
+//            meetingRepository.save(meeting);
+//
+//
+//            return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
         }
         //Need to think of how to reschedule, what timeline to give (if frequency 1 or if anything else)
 
@@ -562,6 +638,9 @@ public class MeetingController {
         allMeetingIds.add(meeting.getId());
         //set the first meeting into the meeting map
         meetings.putIfAbsent(meeting, true);
+        meetingService.addEventToUserCalendar(meeting.getId());
+        Interval interval = new Interval(meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+        userService.updateAvailabilitiesForAllPendingMeetings(userIds, interval);
 
         int count = 2;
         //for each meeting timing
@@ -629,7 +708,7 @@ public class MeetingController {
         }
 
         //save all meetingIds in team and in user
-        // teamService.saveAllMeetingId(allMeetingIds, team);
+        teamService.saveAllMeetingId(allMeetingIds, team);
         userService.saveAllMeetingsForTeamUsers(userIds, allMeetingIds);
         //returns the all the meetings
         return new ResponseEntity <Map<Meeting, Boolean>> (meetings, HttpStatus.OK); //need send notification
@@ -672,4 +751,13 @@ public class MeetingController {
         meetingService.addEventToUserCalendar(meetingId);
         return new ResponseEntity<String>("Done", HttpStatus.OK);
     }
+
+//    @PutMapping("/changeAvailabilities")
+//    public ResponseEntity<?> change (){
+//        LocalDateTime start = LocalDateTime.of(2024, 3, 25, 13,30, 00);
+//        LocalDateTime end = LocalDateTime.of(2024, 3, 25, 14,30, 00);
+//        Interval interval = new Interval(start, end);
+//        userService.updateAvailabilitiesForAllPendingMeetings();
+//        return new ResponseEntity<String>("Done", HttpStatus.OK);
+//    }
 }

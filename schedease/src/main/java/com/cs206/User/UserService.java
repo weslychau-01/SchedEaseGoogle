@@ -105,8 +105,7 @@ public class UserService {
                     for (String meetingAvailability : meetingAvailabilities.keySet()) {
                         System.out.println(meetingAvailability);
                         String[] array = meetingAvailability.split("_");
-                        System.out.println(array[0]);
-                        System.out.println(array[1]);
+
                         LocalDateTime availableTimingStartDateTime = LocalDateTime.parse(array[0]);
                         LocalDateTime availableTimingEndDateTime = LocalDateTime.parse(array[1]);
                         System.out.println(availableTimingStartDateTime);
