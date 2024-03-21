@@ -70,6 +70,25 @@ public class MeetingController {
         } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
+
+    @DeleteMapping("/{meetingId}/deleteEventsFromGoogleCalendar")
+    public ResponseEntity<?> deleteEventsFromGoogleCalendar(@PathVariable(value = "meetingId") String meetingId) throws IOException, GeneralSecurityException, Exception {
+        Event eventToDelete;
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        if (optionalMeeting.isPresent()) {
+            Meeting meeting = optionalMeeting.get();
+            Optional<Team> optionalTeam = teamRepository.findById(meeting.getMeetingTeamId());
+            if (optionalTeam.isPresent()) {
+                Team team = optionalTeam.get();
+                String[] userIds = team.getTeamUserIds().toArray(new String[0]);
+                for (String userId : userIds) {
+                    eventToDelete = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
+                    googleCalendarAPIService.deleteEvent(userId, eventToDelete);
+                }
+            } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        } else {return new ResponseEntity<>(HttpStatus.BAD_REQUEST);}
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
     
 
     @GetMapping("/getAllMeetings")
