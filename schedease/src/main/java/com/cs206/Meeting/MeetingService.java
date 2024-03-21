@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -47,6 +48,10 @@ public class MeetingService {
 
     public List<Interval> findCommonAvailableTimes(Interval timeFrame, List<Interval> unavailableTimings,
             long meetingSeconds) {
+        int startHour = timeFrame.getStartDateTime().getHour();
+        int startMin = timeFrame.getStartDateTime().getMinute();
+        int endHour = timeFrame.getEndDateTime().getHour();
+        int endMin = timeFrame.getEndDateTime().getMinute();
 
         List<Interval> availableTimes = new ArrayList<>();
 
@@ -76,6 +81,20 @@ public class MeetingService {
             availableTimes.add(new Interval(start, endTime));
         }
 
+        for (Interval interval : availableTimes){
+
+            System.out.println(interval);
+
+            if (interval.getStartDateTime().getMinute() != 30 && interval.getStartDateTime().getMinute() != 0){
+                interval.setStartDateTime(interval.getStartDateTime().plusMinutes(Math.abs(30 - interval.getStartDateTime().getMinute())));
+            }
+
+            if (interval.getEndDateTime().getMinute() != 30 && interval.getEndDateTime().getMinute() != 0){
+                interval.setEndDateTime(interval.getEndDateTime().minusMinutes(Math.abs(30 - interval.getEndDateTime().getMinute())));
+            }
+        }
+
+
 
 
         //create slots list for potential meeting timings
@@ -89,13 +108,22 @@ public class MeetingService {
             LocalDateTime slotEnd = slotStart.plusSeconds(meetingSeconds);
 
             while (slotEnd.isBefore(interval.getEndDateTime()) || slotEnd.equals(interval.getEndDateTime())) {
-                slots.add(new Interval(slotStart, slotEnd));
+                System.out.println(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), startHour, startMin));
+                System.out.println(LocalDateTime.of(slotEnd.getYear(), slotEnd.getMonth(), slotEnd.getDayOfMonth(), endHour, endMin));
+                boolean b = (((slotStart.isAfter(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), startHour, startMin))) || (slotStart.isEqual(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), startHour, startMin)))) &&
+                        ((slotEnd.isBefore(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), endHour, endMin))) || (slotEnd.isEqual(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), endHour, endMin)))));
+
+                if (b) {
+                    slots.add(new Interval(slotStart, slotEnd));
+                }
+
                 slotStart = slotStart.plusMinutes(30);
                 slotEnd = slotEnd.plusMinutes(30);
             }
         }
         return slots;
     }
+
 
     //how to algo it?
     public Map<String, Boolean> getConsecutiveMeetingTimings(Meeting firstMeeting, Integer weekCount){
@@ -157,12 +185,15 @@ public class MeetingService {
 ////                        startTimeString = startTimeString + "T00:00:00";
 //                    }
 
-                    System.out.println(event.getStart());
-                    System.out.println(event.getEnd());
+                    //if all day event, if not
+                    if (event.getStart().getDateTime() == null){
+                        startTimeString = event.getStart().getDate().toString() + "T00:00:00";
+                        endTimeString = event.getEnd().getDate().toString() + "T23:59:59";
+                    } else {
+                        startTimeString = event.getStart().getDateTime().toString().substring(0, 19);
+                        endTimeString = event.getEnd().getDateTime().toString().substring(0, 19);
+                    }
 
-                    //timing event
-                    startTimeString = event.getStart().getDateTime().toString().substring(0, 19);
-                    endTimeString = event.getEnd().getDateTime().toString().substring(0, 19);
 
                     Interval interval = new Interval(LocalDateTime.parse(startTimeString, formatter), LocalDateTime.parse(endTimeString, formatter));
                     unavailableTimings.add(interval);

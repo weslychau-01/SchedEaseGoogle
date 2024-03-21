@@ -221,6 +221,7 @@ public class MeetingController {
         //sort the timings based on startDateTime
         unavailableTimings.sort(Comparator.comparing(interval -> interval.getStartDateTime()));
 
+        System.out.println("Entering common availablities");
         //get possible meeting timings based on timeLimit, the list of unavailable timings and meeting duration
         List<Interval> availableTimings = meetingService.findCommonAvailableTimes(timeLimit, unavailableTimings, durationInSeconds);
 
@@ -262,9 +263,9 @@ public class MeetingController {
         meeting.setHasUserVoted(hasUserVoted);
 
         //save the meeting then get the id
-        meetingRepository.save(meeting);
-        teamService.saveMeetingId(meeting.getId(), team);
-        userService.saveMeetingForTeamUsers(team.getTeamUserIds(), meeting.getId());
+//        meetingRepository.save(meeting);
+//        teamService.saveMeetingId(meeting.getId(), team);
+//        userService.saveMeetingForTeamUsers(team.getTeamUserIds(), meeting.getId());
 
         //return the meeting details
         return new ResponseEntity<Meeting>(meeting, HttpStatus.OK);
@@ -529,6 +530,8 @@ public class MeetingController {
             //update the availabilities for pending meetings of all users
             userService.updateAvailabilitiesForAllPendingMeetings(userIds, meetingTiming);
 //            System.out.println("10");
+
+            meetingService.addEventToUserCalendar(meeting.getId());
             return new ResponseEntity <Meeting> (meeting, HttpStatus.OK);
         }
 
