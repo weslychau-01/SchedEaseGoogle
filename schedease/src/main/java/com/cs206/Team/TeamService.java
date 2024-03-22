@@ -20,6 +20,13 @@ public class TeamService {
         teamRepository.save(team);
     }
 
+    public void deleteMeetingId(String meetingId, Team team){
+        Set<String> teamMeetingIds = team.getTeamMeetingIds();
+        teamMeetingIds.remove(meetingId);
+        team.setTeamMeetingIds(teamMeetingIds);
+        teamRepository.save(team);
+    }
+
     public void saveAllMeetingId(List<String> meetingIds, Team team){
         Set<String> teamMeetingIds = team.getTeamMeetingIds();
         teamMeetingIds.addAll(meetingIds);

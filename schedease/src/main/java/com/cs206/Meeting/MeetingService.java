@@ -105,7 +105,13 @@ public class MeetingService {
             LocalDateTime freeEnd = interval.getStartDateTime();
             // check if the available time is more than the meetingDuration, if
             if (start.isAfter(freeEnd)){
-                continue;
+                if (start.isAfter(interval.getEndDateTime())){
+                    continue;
+                }
+                else {
+                    start = interval.getEndDateTime();
+                    continue;
+                }
             }
             long durationInSeconds = Duration.between(start, freeEnd).getSeconds();
             if (durationInSeconds >= meetingSeconds) {
@@ -125,7 +131,7 @@ public class MeetingService {
 
         for (Interval interval : availableTimes){
 
-            System.out.println(interval);
+//            System.out.println(interval);
 
             if (interval.getStartDateTime().getMinute() != 30 && interval.getStartDateTime().getMinute() != 0){
                 interval.setStartDateTime(interval.getStartDateTime().plusMinutes(Math.abs(30 - interval.getStartDateTime().getMinute())));
@@ -192,9 +198,9 @@ public class MeetingService {
             nextMeetingEndDateTime = nextMeetingEndDateTime.plusWeeks(weekCount);
         }
 
-        for (String nextMeetingTimingString : nextMeetingTimings.keySet()){
-            System.out.println(nextMeetingTimingString);
-        }
+//        for (String nextMeetingTimingString : nextMeetingTimings.keySet()){
+//            System.out.println(nextMeetingTimingString);
+//        }
 
         return nextMeetingTimings;
     }
@@ -207,8 +213,11 @@ public class MeetingService {
         Set<String> userIds = team.getTeamUserIds();
         List<Interval> unavailableTimings = new ArrayList<Interval>();
 
-        String firstDateTimeLimitString = firstDateTimeLimit.format(formatter);
-        String lastDateTimeLimitString = lastDateTimeLimit.format(formatter);
+        LocalDateTime starttimeLimit = LocalDateTime.of(firstDateTimeLimit.getYear(), firstDateTimeLimit.getMonth(), firstDateTimeLimit.getDayOfMonth(), 0, 0, 0);
+        LocalDateTime endtimeLimit = LocalDateTime.of(lastDateTimeLimit.getYear(), lastDateTimeLimit.getMonth(), lastDateTimeLimit.getDayOfMonth(), 23, 59, 59);
+
+        String firstDateTimeLimitString = starttimeLimit.format(formatter);
+        String lastDateTimeLimitString = endtimeLimit.format(formatter);
 
         for (String userId : userIds){
             try {
@@ -247,6 +256,7 @@ public class MeetingService {
     }
 
     public void addEventsToUserCalendarFromList(List<String> meetingIds){
+
         for (String meetingId : meetingIds){
             Event eventToAdd;
             Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
@@ -280,6 +290,7 @@ public class MeetingService {
                 Team team = optionalTeam.get();
                 String[] userIds = team.getTeamUserIds().toArray(new String[0]);
                 for (String userId : userIds) {
+                    System.out.println(userId);
                     eventToAdd = googleCalendarAPIService.buildEvent(meeting.getMeetingName(), meeting.getMeetingStartDateTime(), meeting.getMeetingEndDateTime());
                     try {
                         googleCalendarAPIService.addEvent(userId, eventToAdd);

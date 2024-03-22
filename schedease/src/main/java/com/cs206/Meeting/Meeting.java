@@ -30,4 +30,5 @@ public class Meeting {
     private Map<String, Boolean> hasUserVoted;
     private Boolean hasNoConflicts;
     private Boolean isMeetingSet;
+    private Set<String> otherMeetingsIds;
 }
