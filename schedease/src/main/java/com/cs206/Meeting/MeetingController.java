@@ -803,7 +803,7 @@ public class MeetingController {
 //        List<Interval> unavailableTimings = meetingService.getUnavailableTimings(team, firstMeetingDateTime, lastMeetingDateTime);
 
         //Create the next meetings and put all meetings into a map
-        Map<Meeting, Boolean> meetings = new HashMap<>();
+        Map<Meeting, Boolean> meetings = new LinkedHashMap<>();
 
         // intialise all meetingIds list
         List<String> allMeetingIds = new ArrayList<>();
