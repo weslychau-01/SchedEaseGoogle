@@ -213,11 +213,11 @@ public class MeetingService {
         Set<String> userIds = team.getTeamUserIds();
         List<Interval> unavailableTimings = new ArrayList<Interval>();
 
-        LocalDateTime starttimeLimit = LocalDateTime.of(firstDateTimeLimit.getYear(), firstDateTimeLimit.getMonth(), firstDateTimeLimit.getDayOfMonth(), 0, 0, 0);
-        LocalDateTime endtimeLimit = LocalDateTime.of(lastDateTimeLimit.getYear(), lastDateTimeLimit.getMonth(), lastDateTimeLimit.getDayOfMonth(), 23, 59, 59);
+        LocalDateTime startTimeLimit = LocalDateTime.of(firstDateTimeLimit.getYear(), firstDateTimeLimit.getMonth(), firstDateTimeLimit.getDayOfMonth(), 0, 0, 0);
+        LocalDateTime endTimeLimit = LocalDateTime.of(lastDateTimeLimit.getYear(), lastDateTimeLimit.getMonth(), lastDateTimeLimit.getDayOfMonth(), 23, 59, 59);
 
-        String firstDateTimeLimitString = starttimeLimit.format(formatter);
-        String lastDateTimeLimitString = endtimeLimit.format(formatter);
+        String firstDateTimeLimitString = startTimeLimit.format(formatter);
+        String lastDateTimeLimitString = endTimeLimit.format(formatter);
 
         for (String userId : userIds){
             try {

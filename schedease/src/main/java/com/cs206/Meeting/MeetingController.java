@@ -341,15 +341,17 @@ public class MeetingController {
         }
 
         if (!rescheduledMeeting.getOtherMeetingsIds().isEmpty()){
-            Optional<Meeting> optionalNextMeeting = meetingRepository.findById(meetingId);
+            List<String> otherMeetings = new ArrayList<>(rescheduledMeeting.getOtherMeetingsIds());
+            Optional<Meeting> optionalNextMeeting = meetingRepository.findById(otherMeetings.get(0));
             Meeting nextMeeting = new Meeting();
             if (optionalNextMeeting.isPresent()) {
                 nextMeeting = optionalNextMeeting.get();
             }
 
-            Set<String> otherMeetings = rescheduledMeeting.getOtherMeetingsIds();
-            otherMeetings.remove(nextMeeting.getId());
-            nextMeeting.setOtherMeetingsIds(otherMeetings);
+            Set<String> otherMeetingsSet = rescheduledMeeting.getOtherMeetingsIds();
+            otherMeetingsSet.remove(nextMeeting.getId());
+            nextMeeting.setOtherMeetingsIds(otherMeetingsSet);
+
             meetingRepository.save(nextMeeting);
         }
 
@@ -744,9 +746,6 @@ public class MeetingController {
             }
         }
 
-//        System.out.println(earliestEndDateTime);
-//        System.out.println(earliestStartDateTime);
-//        System.out.println(LocalDateTime.now());
 
         //set the values of the meeting time for the event
         meeting.setMeetingStartDateTime(earliestStartDateTime);
