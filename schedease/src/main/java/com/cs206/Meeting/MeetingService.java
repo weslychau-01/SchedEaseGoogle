@@ -104,10 +104,11 @@ public class MeetingService {
         for (Interval interval : unavailableTimings) {
             LocalDateTime freeEnd = interval.getStartDateTime();
             // check if the available time is more than the meetingDuration, if
+            if (start.isAfter(freeEnd)){
+                continue;
+            }
             long durationInSeconds = Duration.between(start, freeEnd).getSeconds();
             if (durationInSeconds >= meetingSeconds) {
-                start.format(formatter);
-                freeEnd.format(formatter);
                 availableTimes.add(new Interval(start, freeEnd));
             }
             start = interval.getEndDateTime();
@@ -149,8 +150,6 @@ public class MeetingService {
             LocalDateTime slotEnd = slotStart.plusSeconds(meetingSeconds);
 
             while (slotEnd.isBefore(interval.getEndDateTime()) || slotEnd.equals(interval.getEndDateTime())) {
-                System.out.println(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), startHour, startMin));
-                System.out.println(LocalDateTime.of(slotEnd.getYear(), slotEnd.getMonth(), slotEnd.getDayOfMonth(), endHour, endMin));
                 boolean b = (((slotStart.isAfter(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), startHour, startMin))) || (slotStart.isEqual(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), startHour, startMin)))) &&
                         ((slotEnd.isBefore(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), endHour, endMin))) || (slotEnd.isEqual(LocalDateTime.of(slotStart.getYear(), slotStart.getMonth(), slotStart.getDayOfMonth(), endHour, endMin)))));
 
@@ -238,8 +237,8 @@ public class MeetingService {
 
                     Interval interval = new Interval(LocalDateTime.parse(startTimeString, formatter), LocalDateTime.parse(endTimeString, formatter));
                     unavailableTimings.add(interval);
-                    System.out.println(interval);
                 }
+
             } catch (Exception e){
                 e.printStackTrace();
             }
