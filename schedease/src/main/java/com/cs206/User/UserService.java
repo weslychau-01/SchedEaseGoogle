@@ -33,6 +33,21 @@ public class UserService {
     // private TeamService teamService;
 
 
+    public void deleteMeetingForTeamUsers(Set<String> userIds, String meetingId){
+        for (String userId : userIds) {
+            Optional<User> optionalUser = userRepository.findById(userId);
+            User user = new User();
+            if (optionalUser.isPresent()) {
+                user = optionalUser.get();
+            }
+
+            Set<String> userMeetingIds = user.getUserMeetingIds();
+            userMeetingIds.remove(meetingId);
+            user.setUserMeetingIds(userMeetingIds);
+            userRepository.save(user);
+
+        }
+    }
 
     public List<User> allUsers() {
         return userRepository.findAll();
@@ -87,7 +102,7 @@ public class UserService {
             if (meetingIds.isEmpty()){
                 return;
             }
-            System.out.println(meetingTiming.getStartDateTime());
+//            System.out.println(meetingTiming.getStartDateTime());
             for (String meetingId : meetingIds) {
                 Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
                 Meeting meeting = new Meeting();
@@ -99,30 +114,30 @@ public class UserService {
                 if (meeting.getIsMeetingSet()) {
                     continue;
                 } else {
-                    System.out.println(meeting.getId());
+//                    System.out.println(meeting.getId());
                     Map<String, Integer> meetingAvailabilities = meeting.getMeetingAvailabilities();
                     Map<String, Integer> newMeetingAvailabilities = new TreeMap<>();
                     for (String meetingAvailability : meetingAvailabilities.keySet()) {
+//                        System.out.println(meetingAvailability);
                         String[] array = meetingAvailability.split("_");
-                        LocalDateTime availableTimingStartDateTime = LocalDateTime.parse(array[0], formatter);
-                        LocalDateTime availableTimingEndDateTime = LocalDateTime.parse(array[1], formatter);
+
+                        LocalDateTime availableTimingStartDateTime = LocalDateTime.parse(array[0]);
+                        LocalDateTime availableTimingEndDateTime = LocalDateTime.parse(array[1]);
+//                        System.out.println(availableTimingStartDateTime);
 
                         if (!(meetingTiming.getStartDateTime().isEqual(availableTimingStartDateTime) ||
                                 meetingTiming.getStartDateTime().isBefore(availableTimingEndDateTime) && meetingTiming.getStartDateTime().isAfter(availableTimingStartDateTime) ||
                                 meetingTiming.getEndDateTime().isAfter(availableTimingStartDateTime) && meetingTiming.getEndDateTime().isBefore(availableTimingEndDateTime) ||
                                 meetingTiming.getEndDateTime().isEqual(availableTimingEndDateTime))) {
-
-
-                            System.out.println(availableTimingStartDateTime);
-
-
                             newMeetingAvailabilities.putIfAbsent(meetingAvailability, meetingAvailabilities.get(meetingAvailability));
+                        } else {
+                            System.out.println("Meeting time not added: " + meetingTiming);
                         }
                     }
 
-                    for (String meetingAvailability : newMeetingAvailabilities.keySet()){
-                        System.out.println(meetingAvailability);
-                    }
+//                    for (String meetingAvailability : newMeetingAvailabilities.keySet()){
+//                        System.out.println(meetingAvailability);
+//                    }
 
                     meeting.setMeetingAvailabilities(newMeetingAvailabilities);
                 }
@@ -164,9 +179,12 @@ public class UserService {
                                     meetingTiming.getEndDateTime().isAfter(availableTimingStartDateTime) && meetingTiming.getEndDateTime().isBefore(availableTimingEndDateTime) ||
                                     meetingTiming.getEndDateTime().isEqual(availableTimingEndDateTime))) {
                                 newMeetingAvailabilities.putIfAbsent(meetingAvailability, meetingAvailabilities.get(meetingAvailability));
+                            } else {
+                                System.out.println("Meeting time not added: " + meetingTiming);
                             }
                         }
                     }
+                    System.out.println(newMeetingAvailabilities);
                     meeting.setMeetingAvailabilities(newMeetingAvailabilities);
                 }
                 meetingRepository.save(meeting);

@@ -57,7 +57,7 @@ public class GoogleCalendarAPIController {
      */
     // private final String TOKENS_DIRECTORY_PATH = "tokens";
 
-    private final String AUTH_REDIRECT_URI = "http://localhost:8080/Google/Authorised";
+    private final String AUTH_REDIRECT_URI = "http://10.124.137.18.nip.io:8080/Google/Authorised";
 
     private final String APPLICATION_NAME = "SchedEase";
 
