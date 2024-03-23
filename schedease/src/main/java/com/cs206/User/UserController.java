@@ -130,13 +130,15 @@ public class UserController {
         User user = new User();
         if (optionalUser.isPresent()){
             user = optionalUser.get();
+        } else {
+            return new ResponseEntity<String>("Wrong Email", HttpStatus.OK);
         }
 
         if (user.getUserPassword().compareTo(userPassword) == 0){
-            return new ResponseEntity<Boolean> (true, HttpStatus.OK);
+            return new ResponseEntity<User> (user, HttpStatus.OK);
         }
 
-        return new ResponseEntity<Boolean>(false, HttpStatus.OK);
+        return new ResponseEntity<String>("Wrong Password", HttpStatus.OK);
     }
 
     @GetMapping("{userId}/{eventStartDateTime}/{eventEndDateTime}/getEvents")
