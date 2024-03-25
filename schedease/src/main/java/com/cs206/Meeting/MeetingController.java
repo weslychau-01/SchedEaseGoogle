@@ -788,7 +788,7 @@ public class MeetingController {
         int weekCount = 0;
         if (meeting.getMeetingFrequency().compareTo("Weekly") == 0){
             weekCount = 1;
-        } else if (meeting.getMeetingFrequency().compareTo("Fortnightly") == 0) {
+        } else if (meeting.getMeetingFrequency().compareTo("Fortnight") == 0) {
             weekCount = 2;
         } else if (meeting.getMeetingFrequency().compareTo("Monthly") == 0) {
             weekCount = 4;
