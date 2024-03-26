@@ -1016,6 +1016,30 @@ public class MeetingController {
         return new ResponseEntity<String>("Meeting Deleted", HttpStatus.OK);
     }
 
+    @GetMapping("{meetingId}/getUserVoted")
+    public ResponseEntity<?> getUserVoted (@PathVariable(value = "meetingId") String meetingId){
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        Meeting meeting = new Meeting();
+        if (optionalMeeting.isPresent()){
+            meeting = optionalMeeting.get();
+        }
+
+        Map<String, Boolean> userNameVoted = new LinkedHashMap<>();
+        Map<String, Boolean> usersVoted = meeting.getHasUserVoted();
+        for (String userId: usersVoted.keySet()){
+            Optional<User> optionalUser = userRepository.findById(userId);
+            User user = new User();
+            if (optionalUser.isPresent()){
+                user = optionalUser.get();
+            }
+            userNameVoted.putIfAbsent(user.getUserName(), usersVoted.get(userId));
+        }
+
+        return new ResponseEntity<Map<String, Boolean>>(userNameVoted, HttpStatus.OK);
+    }
+
+
+
 //    @PutMapping("/changeAvailabilities")
 //    public ResponseEntity<?> change (){
 //        LocalDateTime start = LocalDateTime.of(2024, 3, 25, 13,30, 00);
