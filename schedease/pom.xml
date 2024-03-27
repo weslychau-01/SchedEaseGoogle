@@ -51,9 +51,9 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.google.apis/google-api-services-calendar -->
 		<dependency>
-		<groupId>com.google.apis</groupId>
-		<artifactId>google-api-services-calendar</artifactId>
-		<version>v3-rev20201028-1.30.10</version>
+			<groupId>com.google.apis</groupId>
+			<artifactId>google-api-services-calendar</artifactId>
+			<version>v3-rev20201028-1.30.10</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.oauth-client</groupId>
@@ -64,8 +64,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>RELEASE</version>
+            <scope>compile</scope>
+        </dependency>
 
-	  	</dependencies>
+    </dependencies>
 
 	<build>
 		<plugins>

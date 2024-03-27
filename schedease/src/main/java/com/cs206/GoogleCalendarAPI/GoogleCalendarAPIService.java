@@ -152,11 +152,14 @@ public class GoogleCalendarAPIService {
                     .build();
 
             // Format the start and end date/time to RFC3339
-            String startDateTimeStr = eventStartDateTime + 'Z';
-            String endDateTimeStr = eventEndDateTime + 'Z';
+            String startDateTimeStr = eventStartDateTime + "+08:00";
+            String endDateTimeStr = eventEndDateTime + "+08:00";
 
             DateTime startDateTime = new DateTime(startDateTimeStr);
             DateTime endDateTime = new DateTime(endDateTimeStr);
+
+            System.out.println(startDateTime);
+            System.out.println(endDateTime);
 
             Events events = service.events().list("primary")
                     .setTimeMax(endDateTime)
@@ -230,13 +233,13 @@ public class GoogleCalendarAPIService {
         Event event = new Event()
                 .setSummary(eventName);
 
-        DateTime startDateTime = new DateTime(eventStartDateTime.toString() + ":00.00Z");
+        DateTime startDateTime = new DateTime(eventStartDateTime.toString() + ":00.00+08:00");
         EventDateTime start = new EventDateTime()
                 .setDateTime(startDateTime)
                 .setTimeZone("Asia/Singapore");
         event.setStart(start);
 
-        DateTime endDateTime = new DateTime(eventEndDateTime.toString() + ":00.00Z");
+        DateTime endDateTime = new DateTime(eventEndDateTime.toString() + ":00.00+08:00");
         EventDateTime end = new EventDateTime()
                 .setDateTime(endDateTime)
                 .setTimeZone("Asia/Singapore");
