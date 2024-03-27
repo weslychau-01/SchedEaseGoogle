@@ -42,6 +42,12 @@ public class UserController {
     @Autowired
     private GoogleCalendarAPIService googleCalendarAPIService;
 
+    @Autowired
+    private TeamRepository teamRepository;
+
+    @Autowired
+    private MeetingRepository meetingRepository;
+
     @GetMapping("/getUsers")
     public ResponseEntity<?> getAllUsers() {
         List<User> allUsers = userService.allUsers();
@@ -154,6 +160,153 @@ public class UserController {
         return new ResponseEntity<String>("Failed", HttpStatus.OK);
     }
 
+    @GetMapping("{userId}/getAllTeamAndMeetings")
+    public ResponseEntity<?> getAllTeamAndMeetings (@PathVariable(value = "userId") String userId){
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()){
+            user = optionalUser.get();
+        }
+
+        Map<Team, Set<Meeting>> teamAndMeeting = new LinkedHashMap<>();
+
+        Set<String> teamIds = user.getTeamIds();
+        for (String teamId : teamIds){
+            Optional<Team> optionalTeam = teamRepository.findById(teamId);
+            Team team = new Team();
+            if (optionalTeam.isPresent()){
+                team = optionalTeam.get();
+            }
+
+            Set<String> meetingIds = team.getTeamMeetingIds();
+            Set<Meeting> meetings = new LinkedHashSet<>();
+            for (String meetingId : meetingIds){
+                Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+                Meeting meeting = new Meeting();
+                if (optionalMeeting.isPresent()){
+                    meeting = optionalMeeting.get();
+                }
+                meetings.add(meeting);
+            }
+            teamAndMeeting.putIfAbsent(team, meetings);
+        }
+
+        return new ResponseEntity<Map<Team, Set<Meeting>>>(teamAndMeeting, HttpStatus.OK);
+    }
+
+    @GetMapping("{userId}/getSetMeetings")
+    public ResponseEntity<?> getSetMeetings(@PathVariable(value = "userId") String userId){
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()){
+            user = optionalUser.get();
+        }
+
+        Map<Team, Set<Meeting>> teamAndMeeting = new LinkedHashMap<>();
+        Set<String> teamIds = user.getTeamIds();
+
+        for (String teamId : teamIds){
+            Optional<Team> optionalTeam = teamRepository.findById(teamId);
+            Team team = new Team();
+            if (optionalTeam.isPresent()){
+                team = optionalTeam.get();
+            }
+
+            Set<String> meetingIds = team.getTeamMeetingIds();
+            Set<Meeting> meetings = new LinkedHashSet<>();
+            for (String meetingId : meetingIds){
+                Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+                Meeting meeting = new Meeting();
+                if (optionalMeeting.isPresent()){
+                    meeting = optionalMeeting.get();
+                }
+                if (meeting.getIsMeetingSet()){
+                    meetings.add(meeting);
+                }
+            }
+            teamAndMeeting.putIfAbsent(team, meetings);
+        }
+
+        return new ResponseEntity<Map<Team, Set<Meeting>>>(teamAndMeeting, HttpStatus.OK);
+    }
+
+    @GetMapping("{userId}/getPendingUserVotedMeetings")
+    public ResponseEntity<?> getPendingUserVotedMeetings(@PathVariable(value = "userId") String userId){
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()){
+            user = optionalUser.get();
+        }
+
+        Map<Team, Set<Meeting>> teamAndMeeting = new LinkedHashMap<>();
+        Set<String> teamIds = user.getTeamIds();
+
+        for (String teamId : teamIds){
+            Optional<Team> optionalTeam = teamRepository.findById(teamId);
+            Team team = new Team();
+            if (optionalTeam.isPresent()){
+                team = optionalTeam.get();
+            }
+
+            Set<String> meetingIds = team.getTeamMeetingIds();
+            Set<Meeting> meetings = new LinkedHashSet<>();
+            for (String meetingId : meetingIds){
+                Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+                Meeting meeting = new Meeting();
+                if (optionalMeeting.isPresent()){
+                    meeting = optionalMeeting.get();
+                }
+                if (!meeting.getIsMeetingSet()){
+                    Map<String, Boolean> userVoted = meeting.getHasUserVoted();
+                    if (userVoted.get(userId)){
+                        meetings.add(meeting);
+                    }
+                }
+            }
+            teamAndMeeting.putIfAbsent(team, meetings);
+        }
+
+        return new ResponseEntity<Map<Team, Set<Meeting>>>(teamAndMeeting, HttpStatus.OK);
+    }
+
+    @GetMapping("{userId}/getPendingUserNotVotedMeetings")
+    public ResponseEntity<?> getPendingUserNotVotedMeetings(@PathVariable(value = "userId") String userId){
+        Optional<User> optionalUser = userRepository.findById(userId);
+        User user = new User();
+        if (optionalUser.isPresent()){
+            user = optionalUser.get();
+        }
+
+        Map<Team, Set<Meeting>> teamAndMeeting = new LinkedHashMap<>();
+        Set<String> teamIds = user.getTeamIds();
+
+        for (String teamId : teamIds){
+            Optional<Team> optionalTeam = teamRepository.findById(teamId);
+            Team team = new Team();
+            if (optionalTeam.isPresent()){
+                team = optionalTeam.get();
+            }
+
+            Set<String> meetingIds = team.getTeamMeetingIds();
+            Set<Meeting> meetings = new LinkedHashSet<>();
+            for (String meetingId : meetingIds){
+                Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+                Meeting meeting = new Meeting();
+                if (optionalMeeting.isPresent()){
+                    meeting = optionalMeeting.get();
+                }
+                if (!meeting.getIsMeetingSet()){
+                    Map<String, Boolean> userVoted = meeting.getHasUserVoted();
+                    if (!userVoted.get(userId)){
+                        meetings.add(meeting);
+                    }
+                }
+            }
+            teamAndMeeting.putIfAbsent(team, meetings);
+        }
+
+        return new ResponseEntity<Map<Team, Set<Meeting>>>(teamAndMeeting, HttpStatus.OK);
+    }
 
 }
 

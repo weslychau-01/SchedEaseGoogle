@@ -788,7 +788,7 @@ public class MeetingController {
         int weekCount = 0;
         if (meeting.getMeetingFrequency().compareTo("Weekly") == 0){
             weekCount = 1;
-        } else if (meeting.getMeetingFrequency().compareTo("Fortnightly") == 0) {
+        } else if (meeting.getMeetingFrequency().compareTo("Fortnight") == 0) {
             weekCount = 2;
         } else if (meeting.getMeetingFrequency().compareTo("Monthly") == 0) {
             weekCount = 4;
@@ -1015,6 +1015,30 @@ public class MeetingController {
         meetingRepository.deleteById(meetingId);
         return new ResponseEntity<String>("Meeting Deleted", HttpStatus.OK);
     }
+
+    @GetMapping("{meetingId}/getUserVoted")
+    public ResponseEntity<?> getUserVoted (@PathVariable(value = "meetingId") String meetingId){
+        Optional<Meeting> optionalMeeting = meetingRepository.findById(meetingId);
+        Meeting meeting = new Meeting();
+        if (optionalMeeting.isPresent()){
+            meeting = optionalMeeting.get();
+        }
+
+        Map<String, Boolean> userNameVoted = new LinkedHashMap<>();
+        Map<String, Boolean> usersVoted = meeting.getHasUserVoted();
+        for (String userId: usersVoted.keySet()){
+            Optional<User> optionalUser = userRepository.findById(userId);
+            User user = new User();
+            if (optionalUser.isPresent()){
+                user = optionalUser.get();
+            }
+            userNameVoted.putIfAbsent(user.getUserName(), usersVoted.get(userId));
+        }
+
+        return new ResponseEntity<Map<String, Boolean>>(userNameVoted, HttpStatus.OK);
+    }
+
+
 
 //    @PutMapping("/changeAvailabilities")
 //    public ResponseEntity<?> change (){
